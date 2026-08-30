@@ -7,32 +7,21 @@ import { StatsCards } from '@/components/StatsCards';
 import { RealtimeAttendanceTable } from '@/components/RealtimeAttendanceTable';
 import { AttendanceChart } from '@/components/AttendanceChart';
 import { TodayBreakdownChart } from '@/components/TodayBreakdownChart';
+import Link from "next/link";
 import { Bell, Calendar, LogOut, Settings as SettingsIcon, AlertTriangle, Eye, UserX } from 'lucide-react';
 
 function LiveClock() {
-  const [currentTime, setCurrentTime] = useState<Date | null>(null);
-
+  const [currentTime, setCurrentTime] = useState(new Date());
   useEffect(() => {
-    setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-
-  if (!currentTime) {
-    return (
-      <div className="flex flex-col text-right opacity-0">
-        <span className="text-sm font-bold text-white tracking-wider">Loading Date</span>
-        <span className="text-xs text-emerald-400 font-medium font-mono">Loading Time</span>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex flex-col text-right animate-in fade-in duration-300">
-      <span className="text-sm font-bold text-white tracking-wider">
+    <div className="flex flex-col text-left md:text-right animate-in fade-in duration-300">
+      <span className="text-xs md:text-sm font-bold text-white tracking-wider">
         {currentTime.toLocaleDateString('en-MY', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
       </span>
-      <span className="text-xs text-emerald-400 font-medium font-mono">
+      <span className="text-[10px] md:text-xs text-emerald-400 font-medium font-mono">
         {currentTime.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
       </span>
     </div>
@@ -43,6 +32,7 @@ export default function DashboardPage() {
   const { records, metrics, loading, error } = useAttendance();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [notificationsRead, setNotificationsRead] = useState(false);
   const { profile } = useAdminProfile();
 
   return (
@@ -50,33 +40,34 @@ export default function DashboardPage() {
       
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 tracking-tight drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]">
+        <div className="text-center md:text-left">
+          <h1 className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 tracking-tight drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]">
             DASHBOARD OVERVIEW
           </h1>
-          <p className="text-emerald-400/60 mt-1 font-medium uppercase tracking-widest text-sm">
+          <p className="text-emerald-400/60 mt-1 font-medium uppercase tracking-widest text-xs md:text-sm">
             Live Monitoring & Statistical Data
           </p>
         </div>
         
-        <div className="flex items-center gap-6">
-          {/* Live Date Time Text (No Box) */}
+        <div className="flex items-center justify-between md:justify-end gap-3 md:gap-6 bg-white/5 md:bg-transparent p-3 md:p-0 rounded-2xl border border-white/10 md:border-none">
+          {/* Live Date Time Text */}
           <LiveClock />
           
-          {/* Notification */}
+          <div className="flex items-center gap-3">
+            {/* Notification */}
           <div className="relative">
             <button 
               onClick={() => setShowNotifications(!showNotifications)}
               className="relative p-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
             >
               <Bell size={20} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full shadow-[0_0_8px_rgba(244,63,94,0.8)] animate-pulse"></span>
+              {!notificationsRead && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full shadow-[0_0_8px_rgba(244,63,94,0.8)] animate-pulse"></span>}
             </button>
             {showNotifications && (
               <div className="absolute right-0 mt-2 w-80 glass-panel rounded-xl shadow-2xl overflow-hidden z-50 border border-white/10 origin-top-right animate-in fade-in zoom-in-95 duration-200">
                 <div className="px-4 py-3 border-b border-white/10 bg-white/5 font-medium text-slate-200 flex justify-between items-center">
                   <span>Notifications</span>
-                  <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full border border-rose-500/30">3 New</span>
+                  {!notificationsRead && <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full border border-rose-500/30">3 New</span>}
                 </div>
                 <div className="max-h-80 overflow-y-auto">
                   <div className="flex gap-3 p-4 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer group">
@@ -119,7 +110,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="p-2 border-t border-white/10 bg-black/20 text-center">
-                  <button className="text-xs text-emerald-400 hover:text-emerald-300 font-medium">Mark all as read</button>
+                  <button onClick={() => {setNotificationsRead(true); setShowNotifications(false);}} className="text-xs text-emerald-400 hover:text-emerald-300 font-medium w-full py-1">Mark all as read</button>
                 </div>
               </div>
             )}
@@ -141,15 +132,13 @@ export default function DashboardPage() {
             </button>
             {showProfileMenu && (
               <div className="absolute right-0 mt-2 w-48 glass-panel rounded-xl shadow-2xl border border-white/20 p-2 z-50 flex flex-col gap-1">
-                <button className="flex items-center gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-white/10 rounded-lg transition-colors w-full text-left">
+                <Link href="/settings" className="flex items-center gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-white/10 rounded-lg transition-colors w-full text-left">
                   <SettingsIcon size={14} /> Account Settings
-                </button>
-                <button className="flex items-center gap-2 px-3 py-2 text-sm text-rose-400 hover:bg-rose-500/20 rounded-lg transition-colors w-full text-left">
-                  <LogOut size={14} /> Logout
-                </button>
+                </Link>
               </div>
             )}
           </div>
+        </div>
         </div>
       </div>
 
