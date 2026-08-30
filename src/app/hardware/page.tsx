@@ -234,7 +234,7 @@ export default function HardwarePage() {
                       cy="100%"
                       startAngle={180}
                       endAngle={0}
-                      innerRadius="75%"
+                      innerRadius="85%"
                       outerRadius="100%"
                       paddingAngle={0}
                       dataKey="value"
@@ -249,8 +249,8 @@ export default function HardwarePage() {
                 </ResponsiveContainer>
                 
                 {/* Speedometer Center Text */}
-                <div className="absolute bottom-0 left-0 w-full text-center flex flex-col items-center justify-end">
-                  <span className="text-3xl font-black text-white" style={{ color: cpuColor }}>
+                <div className="absolute bottom-1 left-0 w-full text-center flex flex-col items-center justify-end">
+                  <span className="text-2xl md:text-3xl font-black text-white" style={{ color: cpuColor }}>
                     {cpuLoad}<span className="text-lg opacity-50">%</span>
                   </span>
                 </div>
