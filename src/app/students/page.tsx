@@ -273,7 +273,9 @@ export default function StudentsPage() {
                 const insertedId = data[0].id;
                 
                 // 2. We wait for the Pi to change it to 'active'
-                import('@/lib/supabaseClient').then(({ supabase }) => {
+                import('@/lib/supabaseClient').then(async ({ supabase }) => {
+                    // Automatically wake up Pi Kiosk to process the registration!
+                    await supabase.from('hardware_config').update({ kiosk_active: true }).eq('id', 1);
                   let isTimeout = false;
                   
                   const sub = supabase.channel('wait_for_pi_' + insertedId)
