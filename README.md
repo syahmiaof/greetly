@@ -286,3 +286,24 @@ Greetly solves critical operational and administrative bottlenecks in modern edu
 ### 💰 10. Cost-Effective Enterprise Scalability (General)
 - **Problem:** Enterprise attendance systems require proprietary, expensive hardware and hefty on-premise server licensing.
 - **Solution:** By combining affordable off-the-shelf components (Raspberry Pi 3, SSD1306) with Serverless PaaS architectures (Supabase/Vercel), Greetly achieves enterprise-grade performance at a fraction of the traditional cost, making it highly scalable for any institution.
+
+---
+
+## 10. Troubleshooting
+
+### Temporary Failure in Name Resolution (Dashboard Shows Offline / Time Stuck)
+**Symptoms:** 
+- The Raspberry Pi turns on, the OLED works, but the web dashboard shows the camera as "Offline" and CPU load as 0%.
+- Checking Pi logs shows: `Exception: [Errno -3] Temporary failure in name resolution`.
+- The Pi's system clock is stuck at the time it was last shut down.
+
+**Cause:** 
+When the Pi connects to a Windows Mobile Hotspot, the default DNS configuration may fail to route domain names properly. This breaks the Pi's ability to reach `supabase.co` and `pool.ntp.org` (causing the system clock to freeze).
+
+**Permanent Solution:**
+We forced the `NetworkManager` to permanently use Google's DNS for the hotspot profile. To do this again if it resets, run the following on the Pi via SSH:
+```bash
+sudo nmcli connection modify preconfigured ipv4.dns "8.8.8.8 8.8.4.4"
+sudo nmcli connection modify preconfigured ipv4.ignore-auto-dns yes
+sudo nmcli connection up preconfigured
+```
