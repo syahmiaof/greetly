@@ -288,12 +288,12 @@ export default function HardwarePage() {
               {/* Camera */}
               <div className="flex flex-col p-3 bg-slate-900/50 rounded-xl border border-white/5">
                 <div className="flex items-center gap-2 mb-1">
-                  <Camera size={14} className="text-emerald-400" />
+                  <Camera size={14} className={isOnline ? "text-emerald-400" : "text-red-400"} />
                   <span className="text-[10px] font-semibold text-slate-400 tracking-wider">CAM</span>
                 </div>
                 <div className="flex items-center gap-1.5 mt-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <span className="text-xs font-bold text-emerald-400">Online</span>
+                  <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`}></span>
+                  <span className={`text-xs font-bold ${isOnline ? "text-emerald-400" : "text-red-400"}`}>{isOnline ? "Online" : "Offline"}</span>
                 </div>
               </div>
             </div>
