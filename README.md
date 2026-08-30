@@ -116,7 +116,42 @@ sequenceDiagram
 
 ---
 
-## 3. Hardware Setup
+
+
+### 3. Registration vs. Attendance Workflow (Perbandingan)
+
+`mermaid
+sequenceDiagram
+    autonumber
+    
+    box rgb(30, 41, 59) Registration Mode (Daftar Pelajar Baru)
+    participant Admin (Web)
+    participant Supabase DB
+    participant Raspberry Pi
+    end
+
+    Note over Admin (Web): Module: Students -> Remote Registration
+    Admin (Web)->>Supabase DB: 1. Masukkan nama & set status = 'pending_camera'<br/>2. Paksa Kiosk = ON (Auto)
+    Supabase DB-->>Raspberry Pi: Realtime Trigger
+    Raspberry Pi->>Raspberry Pi: Kesan ada pendaftaran tertunggak
+    Raspberry Pi->>Raspberry Pi: Tangkap 20 muka (Training)
+    Raspberry Pi->>Supabase DB: Update status pelajar = 'active'
+    Supabase DB-->>Admin (Web): Pop-up Success di Web UI!
+    
+    box rgb(6, 78, 59) Attendance Mode (Imbas Kehadiran Harian)
+    participant Student
+    participant Pi Camera
+    participant Dashboard
+    end
+
+    Note over Pi Camera: Module: Hardware -> Kiosk Running
+    Student->>Pi Camera: Berdiri depan kamera
+    Pi Camera->>Pi Camera: Pengesanan Muka AI
+    Pi Camera->>Supabase DB: Hantar data kehadiran (Present/Late) & Semak Cooldown
+    Supabase DB-->>Dashboard: Loceng Notifikasi berbunyi & Data masuk table!
+`
+
+## 4. Hardware Setup
 
 The physical attendance kiosk runs on a Raspberry Pi 3 with the following peripherals:
 
@@ -127,7 +162,7 @@ The physical attendance kiosk runs on a Raspberry Pi 3 with the following periph
 
 ---
 
-## 4. Database Schema (Supabase)
+## 5. Database Schema (Supabase)
 
 ### `students`
 Stores student profiles and facial encoding references.
@@ -152,7 +187,7 @@ Used by the Pi to report its health status (Ping every 3 seconds).
 
 ---
 
-## 5. Running the Web Dashboard Locally
+## 6. Running the Web Dashboard Locally
 
 1. Create a `.env.local` file and add your Supabase keys:
    ```env
@@ -167,7 +202,7 @@ Used by the Pi to report its health status (Ping every 3 seconds).
 
 ---
 
-## 6. Running the Pi Script (Hardware Node)
+## 7. Running the Pi Script (Hardware Node)
 
 The Python script (`pi_scripts/recognize_attendance.py`) handles face detection and Supabase communication.
 
@@ -192,7 +227,7 @@ To ensure the script runs automatically on boot and recovers from crashes:
 
 ---
 
-## 7. Key Engineering Decisions
+## 8. Key Engineering Decisions
 
 ### 1. Auto-Delete Profiles Sync
 If a student is deleted from the web dashboard, their corresponding facial encodings and reference images are automatically purged from the Raspberry Pi 3's local cache via realtime listener triggers. This prevents the edge device from wasting processing power trying to match deleted faces.
@@ -208,7 +243,7 @@ The admin settings page uses a highly optimized `useAdminProfile` React Hook int
 
 ---
 
-## 8. Pitching & Value Proposition
+## 9. Pitching & Value Proposition
 
 Greetly solves critical operational and administrative bottlenecks in modern educational institutions. Below are 10 core value propositions tailored for potential investors and stakeholders:
 
