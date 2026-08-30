@@ -6,7 +6,7 @@ export type Student = {
   student_id: string;
   student_name: string;
   grade_class: string;
-  status: 'Active' | 'Intern' | 'Graduated' | 'Suspended';
+  status: 'Active' | 'Intern' | 'Graduated' | 'Suspended' | 'pending_camera';
   created_at: string;
 };
 
@@ -53,16 +53,15 @@ export function useStudents() {
       const { data, error } = await supabase
         .from('students')
         .insert([newStudent])
-        .select()
-        .single();
+        .select();
         
       if (error) throw error;
       if (data) {
-        setStudents(prev => [...prev, data as Student].sort((a, b) => a.student_id.localeCompare(b.student_id)));
+        setStudents(prev => [...prev, ...data as Student[]].sort((a, b) => a.student_id.localeCompare(b.student_id)));
       }
-      return { success: true, error: null };
+      return { success: true, error: null, data };
     } catch (err: any) {
-      return { success: false, error: err.message };
+      return { success: false, error: err.message, data: null };
     }
   };
 

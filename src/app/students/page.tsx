@@ -223,23 +223,89 @@ export default function StudentsPage() {
         </div>
       </div>
 
-      {/* Register Student Modal */}
+            {/* Register Student Modal (Remote Kiosk Mode) */}
       {isRegisterModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in zoom-in duration-300">
-          <div className="glass-panel w-full max-w-md p-6 rounded-2xl border border-emerald-500/50 shadow-[0_0_40px_rgba(16,185,129,0.3)] relative">
+          <div className="glass-panel w-full max-w-md p-6 rounded-2xl border border-emerald-500/50 shadow-[0_0_40px_rgba(16,185,129,0.3)] relative overflow-hidden">
+            
+            {/* If we are waiting for Pi, show a loading overlay */}
+            {isSubmitting && (
+              <div className="absolute inset-0 z-10 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center animate-in fade-in">
+                <div className="w-16 h-16 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin mb-4"></div>
+                <h4 className="text-lg font-bold text-white text-center">Waiting for Raspberry Pi...</h4>
+                <p className="text-sm text-emerald-400 text-center px-6 mt-2">
+                  Please ask {newStudent.student_name} to look at the camera.
+                </p>
+                <div className="mt-6 px-4 py-2 bg-slate-900 rounded-full border border-white/10 flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse"></div>
+                  <span className="text-xs text-slate-300 font-mono">Status: PENDING_CAMERA</span>
+                </div>
+              </div>
+            )}
+
             <button 
-              onClick={() => setIsRegisterModalOpen(false)}
-              className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors"
+              onClick={() => !isSubmitting && setIsRegisterModalOpen(false)}
+              disabled={isSubmitting}
+              className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors disabled:opacity-0"
             >
               <X size={20} />
             </button>
             
-            <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 mb-2">Register Student</h3>
+            <h3 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 mb-2">Remote Registration</h3>
             <p className="text-slate-400 text-sm mb-6">
-              Enter student details to register them in the system.
+              Enter details below, then click start to wake up the camera on the Pi.
             </p>
             
-            <form onSubmit={handleRegisterStudent} className="space-y-4">
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!newStudent.student_name || !newStudent.student_id) {
+                alert("Name and Matric ID are required!");
+                return;
+              }
+              
+              setIsSubmitting(true);
+              
+              // 1. We tell supabase this is a pending registration
+              const payload = { ...newStudent, status: 'pending_camera' };
+              const { success, error, data } = await addStudent(payload);
+              
+              if (success && data && data.length > 0) {
+                const insertedId = data[0].id;
+                
+                // 2. We wait for the Pi to change it to 'active'
+                import('@/lib/supabaseClient').then(({ supabase }) => {
+                  let isTimeout = false;
+                  
+                  const sub = supabase.channel('wait_for_pi_' + insertedId)
+                    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'students', filter: 'id=eq.'+insertedId }, (payload) => {
+                      if (!isTimeout && (payload.new.status === 'active' || payload.new.status === 'Active')) {
+                        supabase.removeChannel(sub);
+                        setIsSubmitting(false);
+                        setIsRegisterModalOpen(false);
+                        setNewStudent({ student_name: '', student_id: '', grade_class: 'Sem 1A', status: 'Active' });
+                        // Let user know
+                        alert('Registration Successful! Face encodings saved on Pi.');
+                      }
+                    })
+                    .subscribe();
+                    
+                  // Fallback timeout in case Pi is offline (30s)
+                  setTimeout(() => {
+                    isTimeout = true;
+                    supabase.removeChannel(sub);
+                    setIsSubmitting((prev) => {
+                       if (prev) {
+                         alert('Timeout: The Raspberry Pi did not respond within 30 seconds. Please ensure it is powered on and connected to the internet. The status will remain PENDING_CAMERA.');
+                       }
+                       return false;
+                    });
+                  }, 30000);
+                });
+              } else {
+                alert(`Registration failed: ${error}`);
+                setIsSubmitting(false);
+              }
+            }} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Full Name</label>
                 <input 
@@ -260,7 +326,7 @@ export default function StudentsPage() {
                   value={newStudent.student_id}
                   onChange={(e) => setNewStudent({...newStudent, student_id: e.target.value})}
                   className="w-full h-11 glass-input px-4 rounded-lg bg-slate-900/50 border border-white/10 text-white placeholder-white/30 focus:border-emerald-500/50 transition-colors outline-none"
-                  placeholder="e.g. S123"
+                  placeholder="e.g. S002"
                 />
               </div>
 
@@ -273,26 +339,17 @@ export default function StudentsPage() {
                       onChange={(e) => setNewStudent({...newStudent, grade_class: e.target.value})}
                       className="w-full h-11 glass-input px-4 rounded-lg bg-slate-900/50 border border-white/10 text-white focus:border-emerald-500/50 transition-colors outline-none appearance-none cursor-pointer"
                     >
-                      {classes.filter(c => c !== 'All Classes').map(c => (
+                      {['Sem 1A', 'Sem 1B', 'Sem 2A', 'Sem 3A'].map(c => (
                         <option key={c} value={c} className="bg-slate-900">{c}</option>
                       ))}
                     </select>
-                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Status</label>
-                  <div className="relative">
-                    <select 
-                      value={newStudent.status}
-                      onChange={(e) => setNewStudent({...newStudent, status: e.target.value as any})}
-                      className="w-full h-11 glass-input px-4 rounded-lg bg-slate-900/50 border border-white/10 text-white focus:border-emerald-500/50 transition-colors outline-none appearance-none cursor-pointer"
-                    >
-                      {statuses.filter(s => s !== 'All Status').map(s => (
-                        <option key={s} value={s} className="bg-slate-900">{s}</option>
-                      ))}
-                    </select>
-                    <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  {/* Status is forced to Pending Camera initially, no select needed */}
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Initial Status</label>
+                  <div className="w-full h-11 glass-input px-4 rounded-lg bg-slate-800/50 border border-white/5 text-slate-400 flex items-center text-sm">
+                    Pending Camera
                   </div>
                 </div>
               </div>
@@ -307,14 +364,9 @@ export default function StudentsPage() {
                 </button>
                 <button 
                   type="submit"
-                  disabled={isSubmitting}
-                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-bold transition-colors disabled:opacity-50"
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-bold transition-colors"
                 >
-                  {isSubmitting ? 'Saving...' : (
-                    <>
-                      <Save size={18} /> Register Data
-                    </>
-                  )}
+                  <Camera size={18} /> Start Camera on Pi
                 </button>
               </div>
             </form>
