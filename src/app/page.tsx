@@ -35,6 +35,12 @@ export default function DashboardPage() {
   const [notificationsRead, setNotificationsRead] = useState(false);
   const { profile } = useAdminProfile();
 
+  useEffect(() => {
+    if (records && records.length > 0) {
+      setNotificationsRead(false);
+    }
+  }, [records?.[0]?.id]);
+
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-700 relative z-10">
       
@@ -61,13 +67,13 @@ export default function DashboardPage() {
               className="relative p-2 rounded-full hover:bg-white/10 text-slate-300 hover:text-white transition-colors"
             >
               <Bell size={20} />
-              {!notificationsRead && <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full shadow-[0_0_8px_rgba(244,63,94,0.8)] animate-pulse"></span>}
+              {(!notificationsRead && records && records.length > 0) ? <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full shadow-[0_0_8px_rgba(244,63,94,0.8)] animate-pulse"></span> : null}
             </button>
             {showNotifications && (
               <div className="absolute right-0 mt-2 w-80 glass-panel rounded-xl shadow-2xl overflow-hidden z-50 border border-white/10 origin-top-right animate-in fade-in zoom-in-95 duration-200">
                 <div className="px-4 py-3 border-b border-white/10 bg-white/5 font-medium text-slate-200 flex justify-between items-center">
                   <span>Notifications</span>
-                  {!notificationsRead && <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full border border-rose-500/30">3 New</span>}
+                  {(!notificationsRead && records && records.length > 0) ? <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full border border-rose-500/30">{Math.min(records.length, 5)} New</span> : null}
                 </div>
                 <div className="max-h-80 overflow-y-auto">
                   {records && records.length > 0 ? records.slice(0, 5).map((record: any, idx: number) => (
