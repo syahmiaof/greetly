@@ -104,12 +104,21 @@ export default function HardwarePage() {
     }
   };
 
-  const handleReboot = () => {
-    if (confirm('Are you sure you want to reboot the Raspberry Pi? The camera will be offline for ~45 seconds.')) {
-      setIsRebooting(true);
+  const handleShutdown = async () => {
+    if (confirm('Are you sure you want to SHUT DOWN the Raspberry Pi? You will have to manually turn off and on the wall plug to boot it up again.')) {
+      setIsRebooting(true); // Reusing the state for spinner
+      
+      const originalReset = kioskResetTime;
+      await supabase.from('hardware_config').upsert({
+        id: 1,
+        cooldown_seconds: cooldown,
+        buzzer_duration: buzzerDuration,
+        kiosk_reset: -99 // Secret shutdown code
+      });
+      
       setTimeout(() => {
         setIsRebooting(false);
-        showToast('Device reboot sequence initiated.');
+        showToast('Device shutting down...');
       }, 2000);
     }
   };
@@ -336,13 +345,13 @@ export default function HardwarePage() {
               </button>
 
               <button 
-                onClick={handleReboot}
+                onClick={handleShutdown}
                 disabled={isRebooting}
                 className="flex items-center justify-between p-4 rounded-xl bg-slate-900/50 hover:bg-rose-500/10 border border-white/5 hover:border-rose-500/30 transition-all group"
               >
                 <div className="flex items-center gap-3">
                   <Power size={18} className="text-slate-400 group-hover:text-rose-400 transition-colors" />
-                  <span className="font-semibold text-slate-200">Reboot Edge Device</span>
+                  <span className="font-semibold text-slate-200">Shut Down Raspberry Pi</span>
                 </div>
                 {isRebooting ? <RefreshCw size={16} className="animate-spin text-rose-400" /> : null}
               </button>
