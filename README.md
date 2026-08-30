@@ -13,7 +13,7 @@ To ensure high availability, secure data transfer, and automated deployments, Gr
 ```mermaid
 graph TD
     %% Edge Device Layer
-    subgraph Edge["Hardware Edge (Raspberry Pi 4)"]
+    subgraph Edge["Hardware Edge (Raspberry Pi 3)"]
         Cam[Camera Module] -->|Live Video Feed| CV[OpenCV & face_recognition]
         CV -->|Visual Feedback| OLED[SSD1306 OLED]
         CV -->|Audio Feedback| Buzz[Active-Low Buzzer]
@@ -69,9 +69,53 @@ flowchart LR
 
 ---
 
-## 2. Hardware Setup
+## 2. Sequence Diagram (Data & Hardware Flow)
 
-The physical attendance kiosk runs on a Raspberry Pi with the following peripherals:
+This diagram explains exactly how the hardware modules (Camera, OLED, Buzzer) interact with the Raspberry Pi 3, and how the entire system syncs bi-directionally with your Web Dashboard.
+
+```mermaid
+sequenceDiagram
+    participant Hardware as 📷/📟 Hardware (Cam/OLED/Buzzer)
+    participant Python as 🍓 Raspberry Pi 3 (Python)
+    participant Supabase as ☁️ Supabase (Cloud Database)
+    participant NextJS as 💻 Web Dashboard (Next.js)
+
+    Note over Hardware, Python: 1. Hardware Polling & Adjustment
+    NextJS->>Supabase: Admin changes Settings (e.g., Cooldown)
+    Supabase->>Supabase: Updates `hardware_config` table
+    Python->>Supabase: Background Thread polls config every 3 seconds
+    Supabase-->>Python: Returns new settings (e.g., cooldown=120)
+    Python->>Python: Applies settings to local variables instantly!
+
+    Note over Hardware, Python: 2. Face Detection Phase
+    Hardware->>Python: Camera sends raw video frames
+    Python->>Python: OpenCV detects face & compares to trained profiles
+    
+    alt Face Recognized
+        Python->>Python: Identify as "Syahmi Aof"
+        
+        Note over Hardware, Python: 3. Hardware Reaction
+        Python->>Hardware: Send I2C Data to OLED -> "HADIR: Syahmi Aof"
+        Python->>Hardware: Trigger Open-Drain GPIO -> Buzzer "Beep!"
+        
+        Note over Python, Supabase: 4. Cloud Sync Layer
+        Python->>Supabase: Query ID: SELECT id FROM students WHERE name='Syahmi Aof'
+        Supabase-->>Python: Returns UUID
+        Python->>Supabase: INSERT log (student_id, status: "Present")
+        Supabase-->>Python: Success (Data saved in cloud)
+    end
+
+    Note over Supabase, NextJS: 5. Real-time Frontend Layer
+    Supabase->>NextJS: Webhook / Realtime Channel triggers "INSERT" event
+    NextJS->>NextJS: useAttendance.ts hook detects new record
+    NextJS->>NextJS: React deduplicates & Updates Live Dashboard UI
+```
+
+---
+
+## 3. Hardware Setup
+
+The physical attendance kiosk runs on a Raspberry Pi 3 with the following peripherals:
 
 - **Raspberry Pi Camera:** Captures the live video feed. Enabled via `raspi-config`.
 - **SSD1306 OLED Display:** Connected via I2C (`SDA`, `SCL`). Displays system status, time, and immediate feedback.
@@ -80,7 +124,7 @@ The physical attendance kiosk runs on a Raspberry Pi with the following peripher
 
 ---
 
-## 3. Database Schema (Supabase)
+## 4. Database Schema (Supabase)
 
 ### `students`
 Stores student profiles and facial encoding references.
@@ -105,7 +149,7 @@ Used by the Pi to report its health status (Ping every 3 seconds).
 
 ---
 
-## 4. Running the Web Dashboard Locally
+## 5. Running the Web Dashboard Locally
 
 1. Create a `.env.local` file and add your Supabase keys:
    ```env
@@ -120,7 +164,7 @@ Used by the Pi to report its health status (Ping every 3 seconds).
 
 ---
 
-## 5. Running the Pi Script (Hardware Node)
+## 6. Running the Pi Script (Hardware Node)
 
 The Python script (`pi_scripts/recognize_attendance.py`) handles face detection and Supabase communication.
 
@@ -145,10 +189,10 @@ To ensure the script runs automatically on boot and recovers from crashes:
 
 ---
 
-## 6. Key Engineering Decisions
+## 7. Key Engineering Decisions
 
 ### 1. Auto-Delete Profiles Sync
-If a student is deleted from the web dashboard, their corresponding facial encodings and reference images are automatically purged from the Raspberry Pi's local cache via realtime listener triggers. This prevents the edge device from wasting processing power trying to match deleted faces.
+If a student is deleted from the web dashboard, their corresponding facial encodings and reference images are automatically purged from the Raspberry Pi 3's local cache via realtime listener triggers. This prevents the edge device from wasting processing power trying to match deleted faces.
 
 ### 2. The 'Sudah Hadir' (Already Present) Logic & Cooldown
 To prevent rapid-fire duplicate logs, we introduced a **Cooldown Mechanism**. 
