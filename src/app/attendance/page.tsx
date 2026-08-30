@@ -60,22 +60,25 @@ export default function AttendanceKiosk() {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 relative z-10 w-full">
       
       {/* Title Header matching the Dashboard */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 tracking-tight drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div className="text-center md:text-left">
+          <h1 className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 tracking-tight drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]">
             LIVE KIOSK MONITOR
           </h1>
-          <p className="text-emerald-400/60 mt-1 font-medium uppercase tracking-widest text-sm">
+          <p className="text-emerald-400/60 mt-1 font-medium uppercase tracking-widest text-xs md:text-sm">
             Facial Recognition Terminal View
           </p>
         </div>
-        <div className="text-right">
-          <p className="text-sm font-medium text-slate-300">
-            {currentTime.toLocaleDateString('en-MY', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
-          </p>
-          <p className="text-2xl font-bold font-mono text-emerald-400 tracking-wider">
-            {format(currentTime, 'hh:mm:ss a')}
-          </p>
+        
+        <div className="flex items-center justify-center md:justify-end gap-3 md:gap-6 bg-white/5 md:bg-transparent p-3 md:p-0 rounded-2xl border border-white/10 md:border-none">
+          <div className="flex flex-col text-center md:text-right animate-in fade-in duration-300">
+            <span className="text-xs md:text-sm font-bold text-white tracking-wider">
+              {currentTime.toLocaleDateString('en-MY', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
+            </span>
+            <span className="text-[10px] md:text-xs text-emerald-400 font-medium font-mono">
+              {currentTime.toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })}
+            </span>
+          </div>
         </div>
       </div>
 
