@@ -8,7 +8,7 @@ import { RealtimeAttendanceTable } from '@/components/RealtimeAttendanceTable';
 import { AttendanceChart } from '@/components/AttendanceChart';
 import { TodayBreakdownChart } from '@/components/TodayBreakdownChart';
 import Link from "next/link";
-import { Bell, Calendar, LogOut, Settings as SettingsIcon, AlertTriangle, Eye, UserX } from 'lucide-react';
+import { Bell, Calendar, LogOut, Settings as SettingsIcon, AlertTriangle, Eye, UserX, CheckCircle2 } from 'lucide-react';
 
 function LiveClock() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -70,44 +70,22 @@ export default function DashboardPage() {
                   {!notificationsRead && <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full border border-rose-500/30">3 New</span>}
                 </div>
                 <div className="max-h-80 overflow-y-auto">
-                  <div className="flex gap-3 p-4 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer group">
-                    <div className="mt-0.5">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/20 group-hover:bg-rose-500/30">
-                        <AlertTriangle size={14} />
-                      </span>
+                  {records && records.length > 0 ? records.slice(0, 5).map((record: any, idx: number) => (
+                    <div key={idx} className="flex gap-3 p-4 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer group">
+                      <div className="mt-0.5">
+                        <span className={`flex h-8 w-8 items-center justify-center rounded-full ${record.status === 'Late' ? 'bg-amber-500/20 text-amber-400 border-amber-500/20 group-hover:bg-amber-500/30' : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/20 group-hover:bg-emerald-500/30'} border`}>
+                          {record.status === 'Late' ? <AlertTriangle size={14} /> : <CheckCircle2 size={14} />}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-200">{record.status === 'Late' ? 'Late Arrival' : 'Scan Successful'}</p>
+                        <p className="text-xs text-slate-400 mt-1 leading-relaxed">{record.student_name} just scanned in.</p>
+                        <p className="text-[10px] text-slate-500 mt-2">{new Date(record.created_at).toLocaleTimeString('en-MY', { hour: '2-digit', minute: '2-digit', hour12: true })}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-200">Hardware Alert</p>
-                      <p className="text-xs text-slate-400 mt-1 leading-relaxed">Raspberry Pi camera feed disconnected at Main Gate.</p>
-                      <p className="text-[10px] text-slate-500 mt-2">Just now</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3 p-4 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer group">
-                    <div className="mt-0.5">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/20 group-hover:bg-amber-500/30">
-                        <Eye size={14} />
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-200">Security Warning</p>
-                      <p className="text-xs text-slate-400 mt-1 leading-relaxed">Unknown face detected 3 times during morning scan.</p>
-                      <p className="text-[10px] text-slate-500 mt-2">15 mins ago</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3 p-4 hover:bg-white/5 transition-colors cursor-pointer group">
-                    <div className="mt-0.5">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 group-hover:bg-cyan-500/30">
-                        <UserX size={14} />
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-200">Attendance Alert</p>
-                      <p className="text-xs text-slate-400 mt-1 leading-relaxed">Student Ali (Sem 1A) has been absent for 3 consecutive days.</p>
-                      <p className="text-[10px] text-slate-500 mt-2">2 hours ago</p>
-                    </div>
-                  </div>
+                  )) : (
+                    <div className="p-6 text-center text-slate-400 text-sm">No new notifications</div>
+                  )}
                 </div>
                 <div className="p-2 border-t border-white/10 bg-black/20 text-center">
                   <button onClick={() => {setNotificationsRead(true); setShowNotifications(false);}} className="text-xs text-emerald-400 hover:text-emerald-300 font-medium w-full py-1">Mark all as read</button>
