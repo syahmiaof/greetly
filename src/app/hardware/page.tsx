@@ -16,20 +16,19 @@ export default function HardwarePage() {
   const [gateLocked, setGateLocked] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   
-  // 1. Simulated Temperature
-  const [temperature, setTemperature] = useState(48.5);
   
-  // 2. Simulated CPU Load for Speedometer
-  const [cpuLoad, setCpuLoad] = useState(32);
-
-  // 3. Simulated Network Ping for ECG Graph
-  const [pingData, setPingData] = useState(Array.from({length: 20}, (_, i) => ({ time: i, ping: 15 })));
+  const [temperature, setTemperature] = useState(0);
+  const [cpuLoad, setCpuLoad] = useState(0);
+  const [pingData, setPingData] = useState(Array.from({length: 20}, (_, i) => ({ time: i, ping: 0 })));
+  const [isOnline, setIsOnline] = useState(false);
 
   // Fetch Hardware Config from Supabase
   useEffect(() => {
+    let mounted = true;
+
     const fetchConfig = async () => {
       const { data, error } = await supabase.from('hardware_config').select('*').eq('id', 1).single();
-      if (data && !error) {
+      if (data && !error && mounted) {
         setCooldown(data.cooldown_seconds);
         setBuzzerDuration(data.buzzer_duration);
         setKioskResetTime(data.kiosk_reset);
@@ -37,42 +36,48 @@ export default function HardwarePage() {
       }
     };
     fetchConfig();
-  }, []);
 
-  useEffect(() => {
-    // Temperature loop (every 3s)
-    const tempTimer = setInterval(() => {
-      setTemperature(prev => {
-        const fluctuate = (Math.random() - 0.5) * 1.5;
-        return Math.max(40, Math.min(85, Number((prev + fluctuate).toFixed(1))));
-      });
-    }, 3000);
+    const fetchTelemetry = async () => {
+      const { data, error } = await supabase.from('hardware_telemetry').select('*').eq('id', 1).single();
+      if (data && !error && mounted) {
+        updateTelemetryState(data);
+      }
+    };
+    fetchTelemetry();
 
-    // CPU loop (every 1.5s)
-    const cpuTimer = setInterval(() => {
-      setCpuLoad(prev => {
-        const spike = Math.random() > 0.8 ? 30 : 0; // occasional spikes
-        const fluctuate = (Math.random() - 0.5) * 15;
-        return Math.max(5, Math.min(98, Math.round(prev + fluctuate + spike - (spike > 0 ? 0 : 5))));
-      });
-    }, 1500);
-
-    // Ping loop (every 1s)
-    const pingTimer = setInterval(() => {
+    const updateTelemetryState = (data) => {
+      if (!data) return;
+      const now = new Date().getTime();
+      const lastPing = new Date(data.last_ping).getTime();
+      const online = (now - lastPing) < 15000; // 15 seconds threshold
+      
+      setIsOnline(online);
+      setTemperature(online ? Number(data.temperature || 0) : 0);
+      setCpuLoad(online ? Number(data.cpu_load || 0) : 0);
+      
       setPingData(prev => {
-        const newPing = Math.max(8, Math.min(120, Math.round(15 + (Math.random() - 0.2) * 10)));
-        const newData = [...prev.slice(1), { time: prev[prev.length - 1].time + 1, ping: newPing }];
-        return newData;
+        return [...prev.slice(1), { time: prev[prev.length - 1].time + 1, ping: online ? 15 + Math.random()*5 : 0 }];
       });
-    }, 1000);
+    };
+
+    // Listen to telemetry updates
+    const channel = supabase.channel('hardware_telemetry_changes')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'hardware_telemetry', filter: 'id=eq.1' }, (payload) => {
+        if (mounted) updateTelemetryState(payload.new);
+      })
+      .subscribe();
+
+    // Heartbeat check
+    const heartbeatTimer = setInterval(() => {
+      if (mounted) fetchTelemetry(); // Polling fallback to check if it went offline
+    }, 10000);
 
     return () => {
-      clearInterval(tempTimer);
-      clearInterval(cpuTimer);
-      clearInterval(pingTimer);
+      mounted = false;
+      supabase.removeChannel(channel);
+      clearInterval(heartbeatTimer);
     };
   }, []);
-
   const showToast = (message: string) => {
     setToastMessage(message);
     setTimeout(() => setToastMessage(''), 3000);
