@@ -1,14 +1,71 @@
 # Real-Time Facial Recognition Attendance System (Greetly)
 
-## 1. Project Overview & Architecture
+**Greetly** is a cloud-integrated, real-time facial recognition student attendance monitoring system. It leverages a modern tech stack (Next.js, Supabase, Python Edge Node) to provide seamless attendance tracking, live dashboard monitoring, hardware telemetry, and an automated CI/CD pipeline for rapid deployments.
 
-**Greetly** is a real-time, facial recognition-based student attendance monitoring system. It leverages a modern tech stack to provide seamless attendance tracking, live dashboard monitoring, and hardware status telemetry.
+---
 
-### Architecture Components
-- **Frontend Dashboard:** Built with **Next.js** and styled with Tailwind CSS, offering a responsive UI for admins to view attendance logs in real-time, manage student profiles, and monitor hardware metrics.
-- **Backend & Database:** Powered by **Supabase** (PostgreSQL), which handles data storage and provides realtime subscriptions (via WebSockets) to update the frontend instantly when new attendance records are logged.
-- **Edge Device (Hardware):** A **Raspberry Pi** running a Python script uses **OpenCV** and the `face_recognition` library to process video feeds, detect faces, and identify students. 
-- **Feedback Mechanisms:** The Pi interfaces with an I2C OLED display (SSD1306) and an active-low buzzer for immediate physical feedback (e.g., green box/beep for success).
+## 1. System Architecture & CI/CD Pipeline
+
+To ensure high availability, secure data transfer, and automated deployments, Greetly is architected using best-in-class cloud and edge technologies.
+
+### A. Core Workflow Diagram
+
+```mermaid
+graph TD
+    %% Edge Device Layer
+    subgraph Edge["Hardware Edge (Raspberry Pi 4)"]
+        Cam[Camera Module] -->|Live Video Feed| CV[OpenCV & face_recognition]
+        CV -->|Visual Feedback| OLED[SSD1306 OLED]
+        CV -->|Audio Feedback| Buzz[Active-Low Buzzer]
+        CV -->|Ping 3s| Telemetry[Hardware Telemetry]
+    end
+
+    %% Cloud Database Layer
+    subgraph CloudDB["Supabase (PostgreSQL BaaS)"]
+        DB[(PostgreSQL DB)]
+        Storage[Image Buckets]
+        Realtime[WebSockets / Realtime]
+        
+        CV -->|1. Match & Insert Log| DB
+        CV -->|2. Sync Profiles| Storage
+        DB -->|3. Broadcast Changes| Realtime
+    end
+
+    %% Web Dashboard Layer
+    subgraph WebApp["Admin Dashboard (Next.js)"]
+        UI[React UI Components]
+        Hooks[useAttendance Hook]
+        
+        Realtime -->|Listen for Inserts| Hooks
+        Hooks -->|Update State| UI
+    end
+    
+    %% User Action
+    Admin((System Admin)) -->|Views| UI
+```
+
+### B. CI/CD Pipeline (Deployment Architecture)
+
+We utilize a zero-downtime deployment strategy. Any code pushed to the `main` branch automatically triggers a build process.
+
+```mermaid
+flowchart LR
+    Dev([Developer / Local]) -->|git push origin main| GitHub[(GitHub Repository)]
+    GitHub -->|Webhook Trigger| Vercel[Vercel Edge Network]
+    
+    subgraph Vercel Pipeline
+        Vercel --> Build[npm run build]
+        Build --> TypeCheck[npx tsc]
+        TypeCheck --> Deploy[Serverless Deployment]
+    end
+    
+    Deploy --> CF[Cloudflare DNS]
+    CF -->|greetly.syahmiaof.my| EndUser([End Users])
+```
+
+- **GitHub:** Acts as the single source of truth for version control.
+- **Vercel:** PaaS platform that automatically intercepts GitHub webhooks, runs the Next.js build, and deploys the application to an edge network.
+- **Cloudflare:** Manages DNS routing (`greetly.syahmiaof.my`) and provides DDoS protection, while Vercel handles the SSL termination.
 
 ---
 
@@ -16,70 +73,50 @@
 
 The physical attendance kiosk runs on a Raspberry Pi with the following peripherals:
 
-- **Raspberry Pi Camera:** Captures the live video feed for facial recognition. Ensure the camera module is enabled via `raspi-config`.
-- **SSD1306 OLED Display:** Connected via I2C (`SDA`, `SCL`). Used to display system status, time, and immediate feedback (e.g., student name upon successful scan).
-- **Active-Low Buzzer:** Connected to **BCM 4** (GPIO 4). Provides audio feedback (a short beep) when a face is successfully recognized and logged.
-
-*Note: Since it's an active-low buzzer, driving the pin `LOW` turns the buzzer on, and `HIGH` turns it off.*
+- **Raspberry Pi Camera:** Captures the live video feed. Enabled via `raspi-config`.
+- **SSD1306 OLED Display:** Connected via I2C (`SDA`, `SCL`). Displays system status, time, and immediate feedback.
+- **Active-Low Buzzer:** Connected to **BCM 4** (GPIO 4). Provides audio feedback (a short beep) when a face is successfully recognized. 
+  *(Note: Driving the pin `LOW` turns the buzzer on, and `HIGH` turns it off.)*
 
 ---
 
-## 3. Software Setup & Database Schema
+## 3. Database Schema (Supabase)
 
-The system relies on Supabase. Below are the core tables required:
-
-### 1. `students`
-Stores student profiles and their facial encoding references.
+### `students`
+Stores student profiles and facial encoding references.
 - `id`: `uuid` (Primary Key)
-- `matric_no`: `varchar` (Unique identifier, e.g., Student ID)
+- `matric_no`: `varchar` (Unique identifier)
 - `name`: `varchar`
-- `image_url`: `text` (URL to the reference image in Supabase Storage)
+- `image_url`: `text`
 
-### 2. `attendance_logs`
+### `attendance_logs`
 Stores the actual attendance punches.
 - `id`: `uuid` (Primary Key)
 - `student_id`: `uuid` (Foreign Key -> `students.id`)
-- `status`: `varchar` (e.g., 'present')
+- `status`: `varchar`
 - `timestamp`: `timestamptz` (Default: `now()`)
 
-### 3. `hardware_config`
-Allows remote configuration of the Pi from the web dashboard.
-- `id`: `integer` (Primary Key)
-- `cooldown_seconds`: `integer` (Default: 60)
-- `gate_locked`: `boolean` (Default: false)
-
-### 4. `hardware_telemetry`
-Used by the Pi to report its health status to the dashboard.
+### `hardware_telemetry`
+Used by the Pi to report its health status (Ping every 3 seconds).
 - `id`: `integer` (Primary Key)
 - `cpu_temp`: `numeric`
 - `cpu_usage`: `numeric`
-- `memory_usage`: `numeric`
 - `last_ping`: `timestamptz`
 
 ---
 
-## 4. Running the Web Dashboard
+## 4. Running the Web Dashboard Locally
 
-### Prerequisites
-- Node.js (v18+)
-- npm or yarn
-
-### Setup Instructions
-1. Clone the repository and navigate to the root directory.
-2. Create a `.env.local` file based on `.env.local.example` and add your Supabase keys:
+1. Create a `.env.local` file and add your Supabase keys:
    ```env
    NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
-3. Install dependencies:
+2. Install dependencies and run:
    ```bash
    npm install
-   ```
-4. Start the development server:
-   ```bash
    npm run dev
    ```
-5. Open [http://localhost:3000](http://localhost:3000) in your browser. The dashboard will automatically subscribe to Supabase real-time changes.
 
 ---
 
@@ -87,65 +124,37 @@ Used by the Pi to report its health status to the dashboard.
 
 The Python script (`pi_scripts/recognize_attendance.py`) handles face detection and Supabase communication.
 
-### Prerequisites
-- Python 3
-- OpenCV (`cv2`)
-- `face_recognition`
-- `supabase-py`
-- I2C enabled on the Pi (for the OLED)
-
-### Setup
-1. Navigate to the `pi_scripts` folder.
-2. Install Python requirements:
+1. Install Python requirements:
    ```bash
    pip install -r requirements.txt
    ```
-3. Export your Supabase credentials:
+2. Export your Supabase credentials:
    ```bash
    export SUPABASE_URL="your_supabase_url"
    export SUPABASE_KEY="your_supabase_service_role_key"
    ```
 
 ### Running as a Systemd Service (Kiosk Mode)
-To ensure the script runs automatically on boot and recovers from crashes, set it up as a systemd service:
-
-1. Create a service file: `sudo nano /etc/systemd/system/greetly.service`
-2. Add the following configuration:
-   ```ini
-   [Unit]
-   Description=Greetly Face Recognition Service
-   After=network.target
-
-   [Service]
-   Type=simple
-   User=pi
-   WorkingDirectory=/home/pi/project01/pi_scripts
-   Environment="SUPABASE_URL=your_url"
-   Environment="SUPABASE_KEY=your_key"
-   ExecStart=/usr/bin/python3 recognize_attendance.py
-   Restart=always
-   RestartSec=5
-
-   [Install]
-   WantedBy=multi-user.target
-   ```
-3. Enable and start the service:
+To ensure the script runs automatically on boot and recovers from crashes:
+1. Create `sudo nano /etc/systemd/system/kiosk.service`
+2. Enable and start:
    ```bash
-   sudo systemctl enable greetly.service
-   sudo systemctl start greetly.service
+   sudo systemctl enable kiosk.service
+   sudo systemctl start kiosk.service
    ```
 
 ---
 
-## 6. Key Design Decisions
-
-During the development of Greetly, several critical design decisions were made to ensure robustness and a seamless user experience:
+## 6. Key Engineering Decisions
 
 ### 1. Auto-Delete Profiles Sync
-We implemented a robust synchronization mechanism for student profiles. If a student is deleted from the web dashboard, their corresponding facial encodings and reference images are automatically purged from the Raspberry Pi's local cache (and Supabase Storage) via realtime listener triggers. This ensures the edge device doesn't waste memory or processing power trying to match faces of students who are no longer in the system, maintaining strict data privacy.
+If a student is deleted from the web dashboard, their corresponding facial encodings and reference images are automatically purged from the Raspberry Pi's local cache via realtime listener triggers. This prevents the edge device from wasting processing power trying to match deleted faces.
 
 ### 2. The 'Sudah Hadir' (Already Present) Logic & Cooldown
-To prevent rapid-fire, duplicate attendance logs (which would spam the database if a student stands in front of the camera for a few seconds), we introduced a **Cooldown Mechanism**. 
-- When a student's face is recognized and logged, their `matric_no` is stored in a local dictionary with a timestamp.
-- If the camera detects them again within the configured `cooldown_seconds` (managed via the `hardware_config` table), the system displays **"Sudah Hadir"** (or "COOLDOWN") on the UI/OLED. 
-- It intentionally skips the database insert and bypasses the buzzer beep, providing silent visual feedback without generating redundant data.
+To prevent rapid-fire duplicate logs, we introduced a **Cooldown Mechanism**. 
+- When a student's face is recognized, their ID is stored locally with a timestamp.
+- If detected again within the cooldown window, the UI/OLED displays **"Sudah Hadir"**.
+- It skips the database insert and bypasses the buzzer beep, providing silent visual feedback without generating redundant data.
+
+### 3. Local Storage Admin Profile Sync
+The admin settings page uses a highly optimized `useAdminProfile` React Hook integrated with browser `localStorage`. When the admin updates their Name, Role, or uploads an Avatar (converted to Base64), a CustomEvent (`profile-updated`) is dispatched, instantly syncing the UI across the entire dashboard without requiring a page refresh or backend database roundtrip.
