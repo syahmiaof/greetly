@@ -33,7 +33,7 @@ export function Navbar() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-16 md:h-auto md:relative md:w-64 glass-panel min-h-0 md:min-h-screen px-2 py-1 md:p-4 flex flex-row md:flex-col z-50 md:z-20 border-t md:border-t-0 md:border-r border-white/10 backdrop-blur-3xl shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
+    <nav className="fixed bottom-0 left-0 right-0 h-20 pb-4 pt-2 md:h-auto md:pb-4 md:pt-4 md:relative md:w-64 glass-panel min-h-0 md:min-h-screen px-2 py-1 md:p-4 flex flex-row md:flex-col z-50 md:z-20 border-t md:border-t-0 md:border-r border-white/10 backdrop-blur-3xl shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
       <div className="hidden md:flex mb-10 mt-2 px-2 items-center justify-center">
         {/* Dynamic Logo with Secret Toggle */}
         <div 
@@ -73,7 +73,7 @@ export function Navbar() {
             <li key={item.path} className="flex-1 md:flex-none">
               <Link 
                 href={item.path} 
-                className={`flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 px-1 md:px-4 py-2 md:py-3 rounded-xl transition-all duration-300 group
+                className={`flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 px-1 md:px-4 py-1 md:py-3 rounded-xl transition-all duration-300 group
                   ${isActive 
                     ? 'bg-emerald-500/10 md:bg-emerald-500/10 border-b-2 md:border-b-0 md:border-l-2 border-emerald-500 shadow-[inset_0_0_20px_rgba(16,185,129,0.1)] text-emerald-400' 
                     : 'hover:bg-white/5 text-slate-400 hover:text-white border-b-2 md:border-b-0 md:border-l-2 border-transparent'

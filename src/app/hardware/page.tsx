@@ -14,6 +14,7 @@ export default function HardwarePage() {
   const [isRebooting, setIsRebooting] = useState(false);
   const [isTestingBuzzer, setIsTestingBuzzer] = useState(false);
   const [gateLocked, setGateLocked] = useState(false);
+  const [kioskActive, setKioskActive] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   
   
@@ -33,6 +34,7 @@ export default function HardwarePage() {
         setBuzzerDuration(data.buzzer_duration);
         setKioskResetTime(data.kiosk_reset);
         setGateLocked(data.gate_locked);
+        setKioskActive(data.kiosk_active || false);
       }
     };
     fetchConfig();
@@ -45,7 +47,7 @@ export default function HardwarePage() {
     };
     fetchTelemetry();
 
-    const updateTelemetryState = (data) => {
+    const updateTelemetryState = (data: any) => {
       if (!data) return;
       const now = new Date().getTime();
       const lastPing = new Date(data.last_ping).getTime();
@@ -145,7 +147,16 @@ export default function HardwarePage() {
     }, 4000);
   };
 
+  
+  const toggleKioskPower = async () => {
+    const newState = !kioskActive;
+    setKioskActive(newState);
+    await supabase.from('hardware_config').update({ kiosk_active: newState }).eq('id', 1);
+    showToast(newState ? 'Kiosk Started' : 'Kiosk Stopped');
+  };
+
   const toggleGateLock = async () => {
+
     const newState = !gateLocked;
     setGateLocked(newState);
     
@@ -305,6 +316,25 @@ export default function HardwarePage() {
               <ShieldAlert className="text-rose-400" /> Quick Actions
             </h2>
             <div className="grid grid-cols-1 gap-3">
+
+              <button 
+                onClick={toggleKioskPower}
+                className={`flex items-center justify-between p-4 rounded-xl transition-all ${kioskActive ? 'bg-emerald-500/20 border-emerald-500/50 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'bg-slate-900/50 hover:bg-slate-800 border-white/5 hover:border-white/20'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <Power size={18} className={kioskActive ? 'text-emerald-400' : 'text-slate-400'} />
+                  <div className="flex flex-col text-left">
+                    <span className={`font-semibold ${kioskActive ? 'text-emerald-200' : 'text-slate-200'}`}>
+                      {kioskActive ? 'Kiosk Running' : 'Kiosk Standby'}
+                    </span>
+                    <span className="text-xs text-slate-400">{kioskActive ? 'Camera is active' : 'Camera is paused'}</span>
+                  </div>
+                </div>
+                <div className={`w-10 h-6 rounded-full p-1 transition-colors ${kioskActive ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+                  <div className={`w-4 h-4 rounded-full bg-white transition-transform ${kioskActive ? 'translate-x-4' : 'translate-x-0'}`}></div>
+                </div>
+              </button>
+
               <button 
                 onClick={handleReboot}
                 disabled={isRebooting}

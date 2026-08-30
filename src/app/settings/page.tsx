@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { User, Bell, Palette, Shield, Save, CheckCircle2, Server, Database, Globe, Phone, Building2 } from 'lucide-react';
+import { Camera, Trash2, User, Bell, Palette, Shield, Save, CheckCircle2, Server, Database, Globe, Phone, Building2 } from 'lucide-react';
+
+import { useAdminProfile } from '@/hooks/useAdminProfile';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
@@ -9,13 +11,28 @@ export default function SettingsPage() {
   const [showSuccess, setShowSuccess] = useState(false);
 
   // Form States
-  const [profileData, setProfileData] = useState({
-    name: 'Sir Abu',
-    email: 'admin@tvetmara.edu.my',
-    role: 'System Administrator',
-    phone: '+60 12-345 6789',
-    department: 'Fakulti Teknologi Maklumat'
-  });
+  const { profile, saveProfile } = useAdminProfile();
+  const [profileData, setProfileData] = useState(profile);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    setProfileData(profile);
+  }, [profile]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileData({ ...profileData, avatar: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setProfileData({ ...profileData, avatar: null });
+  };
 
   const [theme, setTheme] = useState('aurora');
 
@@ -155,11 +172,32 @@ export default function SettingsPage() {
                     </div>
                     <div className="px-8 pb-6 relative">
                       <div className="flex flex-col sm:flex-row items-center sm:items-end gap-6 -mt-12 sm:-mt-16 mb-4">
-                        <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-slate-900 overflow-hidden relative group cursor-pointer shadow-xl bg-slate-800">
-                          <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Profile" className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <span className="text-xs font-bold text-white">Upload Photo</span>
+                        <div className="relative">
+                          <div 
+                            onClick={() => fileInputRef.current?.click()}
+                            className="w-24 h-24 sm:w-32 sm:h-32 rounded-full border-4 border-slate-900 overflow-hidden relative group cursor-pointer shadow-xl bg-slate-800 flex items-center justify-center text-emerald-400 font-black text-4xl"
+                          >
+                            {profileData.avatar ? (
+                              <img src={profileData.avatar} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                              profileData.name ? profileData.name.substring(0,2).toUpperCase() : 'AD'
+                            )}
+                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <span className="text-xs font-bold text-white flex flex-col items-center gap-1"><Camera size={16} /> Upload</span>
+                            </div>
                           </div>
+                          <input 
+                            type="file" 
+                            ref={fileInputRef}
+                            onChange={handleImageUpload}
+                            accept="image/*"
+                            className="hidden" 
+                          />
+                          {profileData.avatar && (
+                            <button type="button" onClick={removeImage} className="absolute -bottom-2 right-0 bg-rose-500 text-white p-1.5 rounded-full shadow-lg hover:bg-rose-400 transition-colors">
+                              <Trash2 size={14} />
+                            </button>
+                          )}
                         </div>
                         <div className="text-center sm:text-left pb-2">
                           <h4 className="text-2xl font-black text-white tracking-tight">{profileData.name}</h4>

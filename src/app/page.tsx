@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAdminProfile } from '@/hooks/useAdminProfile';
 import { useAttendance } from '@/hooks/useAttendance';
 import { StatsCards } from '@/components/StatsCards';
 import { RealtimeAttendanceTable } from '@/components/RealtimeAttendanceTable';
@@ -42,6 +43,7 @@ export default function DashboardPage() {
   const { records, metrics, loading, error } = useAttendance();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const { profile } = useAdminProfile();
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-700 relative z-10">
@@ -129,12 +131,12 @@ export default function DashboardPage() {
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center gap-3 hover:bg-white/5 p-1 pr-3 rounded-full transition-colors"
             >
-              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-500/50">
-                <img src="https://i.pravatar.cc/150?u=admin" alt="Admin" className="w-full h-full object-cover" />
+              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-emerald-500/50 shrink-0 bg-emerald-900 flex items-center justify-center text-emerald-300 font-bold text-lg">
+                {profile.avatar ? <img src={profile.avatar} alt="Admin" className="w-full h-full object-cover" /> : (profile.name ? profile.name.substring(0,2).toUpperCase() : 'AD')}
               </div>
               <div className="hidden md:block text-left">
-                <p className="text-sm font-semibold text-white">Sir Abu</p>
-                <p className="text-xs text-emerald-400">Administrator</p>
+                <p className="text-sm font-semibold text-white truncate max-w-[120px]">{profile.name}</p>
+                <p className="text-xs text-emerald-400 truncate max-w-[120px]">{profile.role}</p>
               </div>
             </button>
             {showProfileMenu && (

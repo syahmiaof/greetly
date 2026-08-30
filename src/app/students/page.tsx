@@ -266,7 +266,7 @@ export default function StudentsPage() {
               setIsSubmitting(true);
               
               // 1. We tell supabase this is a pending registration
-              const payload = { ...newStudent, status: 'pending_camera' };
+              const payload = { ...newStudent, status: 'pending_camera' as any };
               const { success, error, data } = await addStudent(payload);
               
               if (success && data && data.length > 0) {
@@ -326,7 +326,7 @@ export default function StudentsPage() {
                   value={newStudent.student_id}
                   onChange={(e) => setNewStudent({...newStudent, student_id: e.target.value})}
                   className="w-full h-11 glass-input px-4 rounded-lg bg-slate-900/50 border border-white/10 text-white placeholder-white/30 focus:border-emerald-500/50 transition-colors outline-none"
-                  placeholder="e.g. S002"
+                  placeholder="e.g. DFK250719"
                 />
               </div>
 
@@ -339,7 +339,7 @@ export default function StudentsPage() {
                       onChange={(e) => setNewStudent({...newStudent, grade_class: e.target.value})}
                       className="w-full h-11 glass-input px-4 rounded-lg bg-slate-900/50 border border-white/10 text-white focus:border-emerald-500/50 transition-colors outline-none appearance-none cursor-pointer"
                     >
-                      {['Sem 1A', 'Sem 1B', 'Sem 2A', 'Sem 3A'].map(c => (
+                      {classes.filter(c => c !== 'All Classes').map(c => (
                         <option key={c} value={c} className="bg-slate-900">{c}</option>
                       ))}
                     </select>

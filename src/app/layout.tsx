@@ -37,7 +37,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col md:flex-row text-slate-100 bg-transparent">
         <Navbar />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 pb-24 md:pb-8 z-10 w-full">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 pb-32 md:pb-8 z-10 w-full">
           {children}
         </main>
       </body>
