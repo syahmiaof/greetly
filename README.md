@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/logo.svg" width="120" alt="Greetly Logo" />
+  <img src="public/greetly-logo-transparent.png" width="120" alt="Greetly Logo" />
   <h1>Real-Time Facial Recognition Attendance System (Greetly)</h1>
 </div>
 
