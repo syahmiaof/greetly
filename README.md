@@ -120,7 +120,7 @@ sequenceDiagram
 
 ### 3. Registration vs. Attendance Workflow (Perbandingan)
 
-`mermaid
+```mermaid
 sequenceDiagram
     autonumber
     
@@ -149,7 +149,7 @@ sequenceDiagram
     Pi Camera->>Pi Camera: Pengesanan Muka AI
     Pi Camera->>Supabase DB: Hantar data kehadiran (Present/Late) & Semak Cooldown
     Supabase DB-->>Dashboard: Loceng Notifikasi berbunyi & Data masuk table!
-`
+```
 
 ## 4. Hardware Setup
 
