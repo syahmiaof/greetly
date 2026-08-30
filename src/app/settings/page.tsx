@@ -246,25 +246,65 @@ export default function SettingsPage() {
                     <p className="text-slate-400 text-sm mt-1">Customize the look and feel of your dashboard.</p>
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Theme 1: Aurora */}
                     <button 
                       type="button"
                       onClick={() => setTheme('aurora')}
                       className={`p-1 rounded-2xl transition-all ${theme === 'aurora' ? 'bg-gradient-to-br from-emerald-400 to-cyan-400 shadow-[0_0_30px_rgba(16,185,129,0.3)] scale-[1.02]' : 'bg-white/10 hover:bg-white/20'}`}
                     >
                       <div className="bg-slate-950 p-4 rounded-xl h-full flex flex-col gap-4">
-                        <div className="w-full h-32 rounded-lg bg-gradient-to-br from-emerald-900 to-indigo-900 flex items-center justify-center border border-white/10 overflow-hidden relative">
-                          <div className="w-16 h-16 rounded-full bg-emerald-500/50 blur-xl absolute top-4 left-4"></div>
-                          <div className="w-20 h-20 rounded-full bg-indigo-500/40 blur-xl absolute bottom-0 right-0"></div>
+                        <div className="w-full h-32 rounded-lg bg-gradient-to-br from-emerald-900 to-cyan-900 flex items-center justify-center border border-white/10 overflow-hidden relative">
+                          <div className="w-24 h-24 rounded-full bg-emerald-500/60 blur-2xl absolute top-0 left-0"></div>
+                          <div className="w-24 h-24 rounded-full bg-cyan-500/60 blur-2xl absolute bottom-0 right-0"></div>
                           {theme === 'aurora' && <CheckCircle2 className="text-white relative z-10 drop-shadow-md" size={32} />}
                         </div>
                         <div className="text-left">
-                          <span className="font-bold text-lg text-white block">Emerald Aurora</span>
-                          <span className="text-xs text-slate-400">Default glowing dark theme</span>
+                          <span className="font-bold text-lg text-white block">Emerald Zamrud</span>
+                          <span className="text-xs text-slate-400">Vibrant green & cyan glass</span>
                         </div>
                       </div>
                     </button>
 
+                    {/* Theme 4: Amethyst */}
+                    <button 
+                      type="button"
+                      onClick={() => setTheme('amethyst')}
+                      className={`p-1 rounded-2xl transition-all ${theme === 'amethyst' ? 'bg-gradient-to-br from-violet-500 to-fuchsia-500 shadow-[0_0_30px_rgba(168,85,247,0.4)] scale-[1.02]' : 'bg-white/10 hover:bg-white/20'}`}
+                    >
+                      <div className="bg-slate-950 p-4 rounded-xl h-full flex flex-col gap-4">
+                        <div className="w-full h-32 rounded-lg bg-gradient-to-br from-violet-950 to-fuchsia-950 flex items-center justify-center border border-white/10 overflow-hidden relative">
+                          <div className="w-24 h-24 rounded-full bg-violet-600/60 blur-2xl absolute top-0 left-0"></div>
+                          <div className="w-24 h-24 rounded-full bg-fuchsia-600/60 blur-2xl absolute bottom-0 right-0"></div>
+                          {theme === 'amethyst' && <CheckCircle2 className="text-white relative z-10 drop-shadow-md" size={32} />}
+                        </div>
+                        <div className="text-left">
+                          <span className="font-bold text-lg text-white block">Amethyst Galaxy</span>
+                          <span className="text-xs text-slate-400">Deep space violet & magenta</span>
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Theme 5: Sunset */}
+                    <button 
+                      type="button"
+                      onClick={() => setTheme('sunset')}
+                      className={`p-1 rounded-2xl transition-all ${theme === 'sunset' ? 'bg-gradient-to-br from-orange-500 to-rose-600 shadow-[0_0_30px_rgba(249,115,22,0.4)] scale-[1.02]' : 'bg-white/10 hover:bg-white/20'}`}
+                    >
+                      <div className="bg-slate-950 p-4 rounded-xl h-full flex flex-col gap-4">
+                        <div className="w-full h-32 rounded-lg bg-gradient-to-br from-orange-950 to-rose-950 flex items-center justify-center border border-white/10 overflow-hidden relative">
+                          <div className="w-24 h-24 rounded-full bg-orange-600/60 blur-2xl absolute top-0 left-0"></div>
+                          <div className="w-24 h-24 rounded-full bg-rose-600/60 blur-2xl absolute bottom-0 right-0"></div>
+                          {theme === 'sunset' && <CheckCircle2 className="text-white relative z-10 drop-shadow-md" size={32} />}
+                        </div>
+                        <div className="text-left">
+                          <span className="font-bold text-lg text-white block">Sunset Flare</span>
+                          <span className="text-xs text-slate-400">Fiery orange & crimson red</span>
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Theme 2: Dark */}
                     <button 
                       type="button"
                       onClick={() => setTheme('dark')}
@@ -281,17 +321,19 @@ export default function SettingsPage() {
                       </div>
                     </button>
 
+                    {/* Theme 3: Light */}
                     <button 
                       type="button"
                       onClick={() => setTheme('light')}
                       className={`p-1 rounded-2xl transition-all ${theme === 'light' ? 'bg-gradient-to-br from-cyan-400 to-blue-400 shadow-[0_0_30px_rgba(6,182,212,0.3)] scale-[1.02]' : 'bg-white/10 hover:bg-white/20'}`}
                     >
-                      <div className="bg-slate-950 p-4 rounded-xl h-full flex flex-col gap-4 opacity-50 cursor-not-allowed">
+                      <div className="bg-slate-950 p-4 rounded-xl h-full flex flex-col gap-4">
                         <div className="w-full h-32 rounded-lg bg-slate-100 flex items-center justify-center border border-slate-300">
+                          {theme === 'light' && <CheckCircle2 className="text-slate-900" size={32} />}
                         </div>
                         <div className="text-left">
                           <span className="font-bold text-lg text-white block">Light Mode</span>
-                          <span className="text-xs text-slate-400">Coming soon in v3.0</span>
+                          <span className="text-xs text-slate-400">Clean white interface</span>
                         </div>
                       </div>
                     </button>

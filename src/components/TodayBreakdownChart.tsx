@@ -49,7 +49,7 @@ export function TodayBreakdownChart({ records, loading }: TodayBreakdownChartPro
         <h3 className="text-sm font-bold tracking-widest text-slate-200 uppercase drop-shadow-md">
           Today's Distribution <span className="text-slate-400 font-normal ml-2 tracking-normal capitalize">{new Date().toLocaleDateString('en-MY', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
         </h3>
-        <span className="px-2 py-1 bg-indigo-500/20 text-indigo-300 text-[10px] rounded border border-indigo-500/30 font-bold uppercase tracking-wider transition-all group-hover:bg-indigo-500/30">Ratio</span>
+        <span className="px-2 py-1 bg-cyan-500/20 text-cyan-300 text-[10px] rounded border border-cyan-500/30 font-bold uppercase tracking-wider transition-all group-hover:bg-cyan-500/30">Ratio</span>
       </div>
       
       <div className="flex-1 w-full h-full min-h-[200px] flex items-center justify-center relative">

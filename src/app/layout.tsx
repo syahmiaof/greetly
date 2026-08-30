@@ -25,6 +25,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+      <head>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            try {
+              let theme = localStorage.getItem('app-theme') || 'aurora';
+              document.documentElement.setAttribute('data-theme', theme);
+            } catch (e) {}
+          `
+        }} />
+      </head>
       <body className="min-h-full flex flex-col md:flex-row text-slate-100 bg-transparent">
         <Navbar />
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 pb-24 md:pb-8 z-10 w-full">

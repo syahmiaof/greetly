@@ -19,28 +19,28 @@ export function StatsCards({ metrics = { totalStudents: 0, presentToday: 0, abse
       value: metrics.totalStudents, 
       icon: <Users size={20} className="text-emerald-300" />,
       subtext: 'Current Active Students',
-      containerClass: 'glass-panel p-6 rounded-2xl flex flex-col justify-between h-32 relative overflow-hidden transition-all duration-300 hover:-translate-y-1 bg-emerald-500/20 border-emerald-400/50 shadow-[0_0_15px_rgba(16,185,129,0.2)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] hover:border-emerald-300'
+      containerClass: 'glass-panel p-6 rounded-2xl flex flex-col justify-between h-32 relative overflow-hidden transition-all duration-300 hover:-translate-y-1 border-emerald-400/50 shadow-[0_0_15px_rgba(16,185,129,0.2)] hover:shadow-[0_0_30px_rgba(16,185,129,0.5)] hover:border-emerald-300'
     },
     { 
       label: "Today's Present", 
       value: metrics.presentToday, 
-      icon: <UserCheck size={20} className="text-indigo-300" />,
+      icon: <UserCheck size={20} className="text-cyan-300" />,
       subtext: `${metrics.monthlyPresentPct}% monthly avg`,
-      containerClass: 'glass-panel p-6 rounded-2xl flex flex-col justify-between h-32 relative overflow-hidden transition-all duration-300 hover:-translate-y-1 bg-indigo-500/20 border-indigo-400/50 shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_30px_rgba(99,102,241,0.5)] hover:border-indigo-300'
+      containerClass: 'glass-panel p-6 rounded-2xl flex flex-col justify-between h-32 relative overflow-hidden transition-all duration-300 hover:-translate-y-1 border-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.2)] hover:shadow-[0_0_30px_rgba(6,182,212,0.5)] hover:border-cyan-300'
     },
     { 
       label: "Today's Late", 
       value: metrics.lateArrivals, 
       icon: <Clock size={20} className="text-slate-300" />,
       subtext: `${metrics.monthlyLatePct}% monthly avg`,
-      containerClass: 'glass-panel p-6 rounded-2xl flex flex-col justify-between h-32 relative overflow-hidden transition-all duration-300 hover:-translate-y-1 bg-slate-500/20 border-slate-400/50 shadow-[0_0_15px_rgba(148,163,184,0.2)] hover:shadow-[0_0_30px_rgba(148,163,184,0.5)] hover:border-slate-300'
+      containerClass: 'glass-panel p-6 rounded-2xl flex flex-col justify-between h-32 relative overflow-hidden transition-all duration-300 hover:-translate-y-1 border-slate-400/50 shadow-[0_0_15px_rgba(148,163,184,0.2)] hover:shadow-[0_0_30px_rgba(148,163,184,0.5)] hover:border-slate-300'
     },
     { 
       label: "Today's Absent", 
       value: metrics.absentToday, 
       icon: <UserX size={20} className="text-rose-300" />,
       subtext: `${metrics.monthlyAbsentPct}% monthly avg`,
-      containerClass: 'glass-panel p-6 rounded-2xl flex flex-col justify-between h-32 relative overflow-hidden transition-all duration-300 hover:-translate-y-1 bg-rose-500/20 border-rose-400/50 shadow-[0_0_15px_rgba(244,63,94,0.2)] hover:shadow-[0_0_30px_rgba(244,63,94,0.5)] hover:border-rose-300'
+      containerClass: 'glass-panel p-6 rounded-2xl flex flex-col justify-between h-32 relative overflow-hidden transition-all duration-300 hover:-translate-y-1 border-rose-400/50 shadow-[0_0_15px_rgba(244,63,94,0.2)] hover:shadow-[0_0_30px_rgba(244,63,94,0.5)] hover:border-rose-300'
     },
   ];
 

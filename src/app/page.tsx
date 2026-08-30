@@ -105,7 +105,7 @@ export default function DashboardPage() {
 
                   <div className="flex gap-3 p-4 hover:bg-white/5 transition-colors cursor-pointer group">
                     <div className="mt-0.5">
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 group-hover:bg-indigo-500/30">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/20 group-hover:bg-cyan-500/30">
                         <UserX size={14} />
                       </span>
                     </div>

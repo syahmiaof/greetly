@@ -181,7 +181,7 @@ export function RealtimeAttendanceTable({ records = [] }: RealtimeAttendanceTabl
                       <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <Link 
                           href={`/records/${record.student_id}`}
-                          className="p-2 flex items-center justify-center bg-white/5 hover:bg-indigo-500/20 text-indigo-300 rounded-lg transition-colors border border-white/5 hover:border-indigo-500/30"
+                          className="p-2 flex items-center justify-center bg-white/5 hover:bg-cyan-500/20 text-cyan-300 rounded-lg transition-colors border border-white/5 hover:border-cyan-500/30"
                           title="View Attendance Details"
                         >
                           <Eye size={14} />
