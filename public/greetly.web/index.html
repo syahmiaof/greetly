@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Greetly - The Future of Smart Attendance</title>
+  <link rel="icon" type="image/png" href="/greetly-logo-transparent.png" />
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&display=swap');
@@ -868,9 +869,9 @@
     }
 
     function resizeCanvas() {
-      if (!images[1]) return;
+      if (!images[0]) return;
       
-      const img = images[1];
+      const img = images[0];
       // Calculate scale to fit within the screen (contain) but at 95% 
       const scale = Math.min(window.innerWidth / img.width, window.innerHeight / img.height) * 0.95;
       
