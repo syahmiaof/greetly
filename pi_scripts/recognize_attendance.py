@@ -13,13 +13,13 @@ from PIL import Image, ImageDraw, ImageFont
 # ==========================================
 # 1. SETUP HARDWARE (BUZZER & OLED)
 # ==========================================
-BUZZER_PIN = 12 
+BUZZER_PIN = 4 
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BCM)
 
-# HACK IoT: Gunakan teknik "Open-Drain"
-# Set pin sebagai INPUT (terapung/High-Z) supaya 5V dari buzzer tak dapat mengalir ke Ground. Ini akan paksa buzzer senyap.
-GPIO.setup(BUZZER_PIN, GPIO.IN, pull_up_down=GPIO.PUD_OFF)
+# Set pin ke OUTPUT dan HIGH (matikan Active-Low buzzer)
+GPIO.setup(BUZZER_PIN, GPIO.OUT)
+GPIO.output(BUZZER_PIN, GPIO.HIGH)
 
 try:
     disp = Adafruit_SSD1306.SSD1306_128_64(rst=None, i2c_address=0x3C)
@@ -54,11 +54,9 @@ def clear_oled():
 def trigger_buzzer(duration=0.5):
     try:
         print(f"[debug] Sounding buzzer for {duration}s")
-        # Tukar ke OUTPUT dan LOW (0V) untuk bagi elektrik mengalir dan bunyikan buzzer
-        GPIO.setup(BUZZER_PIN, GPIO.OUT, initial=GPIO.LOW)
+        GPIO.output(BUZZER_PIN, GPIO.LOW)  # ON
         time.sleep(duration)
-        # Tukar balik ke INPUT untuk terapungkan pin dan matikan bunyi
-        GPIO.setup(BUZZER_PIN, GPIO.IN, pull_up_down=GPIO.PUD_OFF)
+        GPIO.output(BUZZER_PIN, GPIO.HIGH) # OFF
     except Exception as e:
         print(f"Buzzer Error: {e}")
 
@@ -330,8 +328,7 @@ except KeyboardInterrupt:
 finally:
     stop_threads = True
     clear_oled()
-    # Letak pin buzzer ke INPUT sebelum exit untuk elak ia menjerit
-    GPIO.setup(BUZZER_PIN, GPIO.IN, pull_up_down=GPIO.PUD_OFF)
+    GPIO.output(BUZZER_PIN, GPIO.HIGH)
     # GPIO.cleanup()
     cap.release()
     cv2.destroyAllWindows()
