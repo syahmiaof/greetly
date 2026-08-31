@@ -313,14 +313,14 @@ export default function SettingsPage() {
                     <button 
                       type="button"
                       onClick={() => setTheme('startup')}
-                      className={`p-1 rounded-2xl transition-all ${theme === 'startup' ? 'bg-gradient-to-br from-emerald-500 to-emerald-900 shadow-[0_0_30px_rgba(16,185,129,0.4)] scale-[1.02]' : 'bg-white/10 hover:bg-white/20'}`}
+                      className={`p-1 rounded-2xl transition-all ${theme === 'startup' ? 'bg-gradient-to-br from-sky-500 to-sky-900 shadow-[0_0_30px_rgba(14,165,233,0.4)] scale-[1.02]' : 'bg-white/10 hover:bg-white/20'}`}
                     >
                       <div className="bg-[#0a0d0c] p-4 rounded-xl h-full flex flex-col gap-4">
-                        <div className="w-full h-32 rounded-lg bg-[#0a0d0c] flex items-center justify-center border border-white/10 overflow-hidden relative">
+                        <div className="w-full h-32 rounded-lg bg-[#050505] flex items-center justify-center border border-white/10 overflow-hidden relative">
                           {/* Grid background representation */}
                           <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:12px_12px]"></div>
-                          <div className="w-32 h-32 rounded-full bg-emerald-500/20 blur-xl absolute m-auto inset-0"></div>
-                          {theme === 'startup' && <CheckCircle2 className="text-emerald-400 relative z-10 drop-shadow-md" size={32} />}
+                          <div className="w-32 h-32 rounded-full bg-sky-500/20 blur-xl absolute m-auto inset-0"></div>
+                          {theme === 'startup' && <CheckCircle2 className="text-sky-400 relative z-10 drop-shadow-md" size={32} />}
                         </div>
                         <div className="text-left">
                           <span className="font-bold text-lg text-white block">Deep Tech</span>
