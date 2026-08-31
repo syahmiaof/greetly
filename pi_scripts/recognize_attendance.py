@@ -82,6 +82,7 @@ def sync_hardware_config():
                     HARDWARE_CONFIG["cooldown_seconds"] = res.data[0].get("cooldown_seconds", 120)
                     HARDWARE_CONFIG["buzzer_duration"] = res.data[0].get("buzzer_duration", 0.5)
                     HARDWARE_CONFIG["gate_locked"] = res.data[0].get("gate_locked", False)
+                    HARDWARE_CONFIG["kiosk_active"] = res.data[0].get("kiosk_active", True)
                     
                     kiosk_reset = res.data[0].get("kiosk_reset", 30)
                     if kiosk_reset == -1 and not last_test_state:
@@ -161,7 +162,13 @@ try:
         ret, frame = cap.read()
         if not ret or frame is None: continue
 
-        if HARDWARE_CONFIG["gate_locked"]:
+        if not HARDWARE_CONFIG.get("kiosk_active", True):
+            cv2.putText(frame, "CAMERA OFFLINE", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+            cv2.imshow("Kiosk Mode", frame)
+            if cv2.waitKey(1) & 0xFF == ord("q"): break
+            continue
+
+        if HARDWARE_CONFIG.get("gate_locked", False):
             if not gate_was_locked:
                 update_oled("SYSTEM LOCKED!", "Scanner Disabled.")
                 gate_was_locked = True
