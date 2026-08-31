@@ -53,6 +53,7 @@ def clear_oled():
 
 def trigger_buzzer(duration=0.5):
     try:
+        print(f"[debug] Sounding buzzer for {duration}s")
         # Tukar ke OUTPUT dan LOW (0V) untuk bagi elektrik mengalir dan bunyikan buzzer
         GPIO.setup(BUZZER_PIN, GPIO.OUT)
         GPIO.output(BUZZER_PIN, GPIO.LOW)
