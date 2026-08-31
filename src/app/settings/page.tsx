@@ -521,7 +521,7 @@ export default function SettingsPage() {
                 onClick={() => {
                   import('@/app/login/actions').then((m) => m.logout());
                 }}
-                className="hidden sm:flex items-center gap-2 px-4 py-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors text-sm font-medium"
+                className="flex w-full sm:w-auto justify-center sm:justify-start items-center gap-2 px-4 py-3 sm:py-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors text-sm font-medium border border-rose-500/20 sm:border-transparent"
               >
                 <LogOut size={16} /> Log Out
               </button>

@@ -93,17 +93,17 @@ export function Navbar() {
           );
         })}
 
-        {/* Go To Homepage Button (Directly below Settings) */}
-        <li className="hidden md:block w-full mt-4 pt-4 border-t border-white/10">
+        {/* Go To Homepage Button */}
+        <li className="flex-1 md:flex-none md:w-full md:mt-4 md:pt-4 md:border-t border-white/10">
           <a 
             href="/greetly.web/index.html" 
             target="_blank"
             rel="noopener noreferrer"
             title="Open Landing Page"
-            className="flex w-full items-center justify-start gap-3 px-4 py-3 rounded-xl transition-all duration-300 group hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:border-emerald-500/80 shadow-[0_0_15px_rgba(16,185,129,0.1)] hover:shadow-[0_0_25px_rgba(16,185,129,0.3)]"
+            className="flex flex-col md:flex-row w-full items-center justify-center md:justify-start gap-1 md:gap-3 px-1 md:px-4 py-1 md:py-3 rounded-xl transition-all duration-300 group md:hover:bg-emerald-500/20 text-emerald-400 md:border md:border-emerald-500/30 md:hover:border-emerald-500/80 md:shadow-[0_0_15px_rgba(16,185,129,0.1)] md:hover:shadow-[0_0_25px_rgba(16,185,129,0.3)]"
           >
             <Home size={20} className="text-emerald-400 group-hover:scale-110 transition-transform" />
-            <span className="tracking-wide text-sm font-semibold uppercase">Homepage</span>
+            <span className="tracking-wide text-[10px] md:text-sm font-medium md:font-semibold md:uppercase">Home</span>
           </a>
         </li>
       </ul>
