@@ -52,11 +52,15 @@ def clear_oled():
     except: pass
 
 def trigger_buzzer(duration=0.5):
-    # Tukar ke OUTPUT dan LOW (0V) untuk bagi elektrik mengalir dan bunyikan buzzer
-    GPIO.setup(BUZZER_PIN, GPIO.OUT, initial=GPIO.LOW)
-    time.sleep(duration)
-    # Tukar balik ke INPUT untuk terapungkan pin dan matikan bunyi
-    GPIO.setup(BUZZER_PIN, GPIO.IN, pull_up_down=GPIO.PUD_OFF)
+    try:
+        # Tukar ke OUTPUT dan LOW (0V) untuk bagi elektrik mengalir dan bunyikan buzzer
+        GPIO.setup(BUZZER_PIN, GPIO.OUT)
+        GPIO.output(BUZZER_PIN, GPIO.LOW)
+        time.sleep(duration)
+        # Tukar balik ke INPUT untuk terapungkan pin dan matikan bunyi
+        GPIO.setup(BUZZER_PIN, GPIO.IN, pull_up_down=GPIO.PUD_OFF)
+    except Exception as e:
+        print(f"Buzzer Error: {e}")
 
 update_oled("ATTENDANCE SYSTEM", "Status: STANDBY...")
 
