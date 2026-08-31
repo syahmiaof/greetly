@@ -96,6 +96,7 @@ def sync_hardware_config():
                     elif kiosk_reset == -99:
                         print("[!] Web Triggered SHUTDOWN!")
                         update_oled("SYSTEM SHUTDOWN", "Goodbye.")
+                        trigger_buzzer(2.0) # Bunyi buzzer 2 saat
                         try: supabase.table("hardware_config").update({"kiosk_reset": 30}).eq("id", 1).execute()
                         except: pass
                         os.system("sudo halt")
@@ -192,31 +193,16 @@ gate_was_locked = False
 # 4. MAIN LOOP
 # ==========================================
 try:
+    window_open = False
     while True:
-        # Handle Gate Locked
-        if HARDWARE_CONFIG.get("gate_locked", False):
-            if not gate_was_locked:
-                update_oled("SYSTEM LOCKED!", "Scanner Disabled.")
-                gate_was_locked = True
-            blank_frame = np.zeros((480, 640, 3), dtype=np.uint8)
-            cv2.putText(blank_frame, "GATE LOCKED", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-            cv2.imshow("Kiosk Mode", blank_frame)
-            if cap.isOpened(): cap.release()
-            time.sleep(1)
-            continue
-        elif gate_was_locked:
-            update_oled("ATTENDANCE SYSTEM", "Status: STANDBY...")
-            gate_was_locked = False
-
-        # Handle Camera Standby (Sleep Mode)
+        # Handle Camera Standby (Sleep Mode) - Window Disappears
         if not HARDWARE_CONFIG.get("kiosk_active", True):
             if cap.isOpened():
                 cap.release()
                 update_oled("CAMERA OFFLINE", "Paused via Web.")
-            blank_frame = np.zeros((480, 640, 3), dtype=np.uint8)
-            cv2.putText(blank_frame, "CAMERA OFFLINE (SLEEPING)", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-            cv2.imshow("Kiosk Mode", blank_frame)
-            if cv2.waitKey(1) & 0xFF == ord("q"): break
+            if window_open:
+                cv2.destroyAllWindows()
+                window_open = False
             time.sleep(1) # Sleep to save CPU!
             continue
         else:
@@ -233,9 +219,24 @@ try:
         ret, frame = cap.read()
         if not ret or frame is None: continue
 
+        # Handle Gate Locked - Live Camera Feed with Red Text
+        if HARDWARE_CONFIG.get("gate_locked", False):
+            if not gate_was_locked:
+                update_oled("SYSTEM LOCKED!", "Scanner Disabled.")
+                gate_was_locked = True
+            cv2.putText(frame, "GATE LOCKED", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            cv2.imshow("Kiosk Mode", frame)
+            window_open = True
+            if cv2.waitKey(1) & 0xFF == ord("q"): break
+            continue
+        elif gate_was_locked:
+            update_oled("ATTENDANCE SYSTEM", "Status: STANDBY...")
+            gate_was_locked = False
+
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5, minSize=(30, 30))
         current_time = time.time()
+        window_open = True
 
         # Remote Registration Logic
         if HARDWARE_CONFIG.get("pending_student") is not None:
