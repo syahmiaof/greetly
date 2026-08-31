@@ -35,9 +35,10 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Protect everything except /login and public static files like the landing page
+  // Protect everything except /login, /, and public static files like the landing page
   const isPublicRoute = 
     request.nextUrl.pathname === '/login' || 
+    request.nextUrl.pathname === '/' ||
     request.nextUrl.pathname.startsWith('/greetly.web')
 
   const isProtectedRoute = !isPublicRoute
@@ -48,10 +49,10 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // If user is logged in and tries to access /login, redirect to root dashboard
+  // If user is logged in and tries to access /login, redirect to /dashboard
   if (user && request.nextUrl.pathname.startsWith('/login')) {
       const url = request.nextUrl.clone()
-      url.pathname = '/'
+      url.pathname = '/dashboard'
       return NextResponse.redirect(url)
   }
 
