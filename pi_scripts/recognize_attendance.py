@@ -89,6 +89,11 @@ def sync_hardware_config():
                         last_test_state = True
                         print("[!] Web Triggered Test Buzzer!")
                         threading.Thread(target=trigger_buzzer, args=(HARDWARE_CONFIG["buzzer_duration"],), daemon=True).start()
+                    elif kiosk_reset == -99:
+                        print("[!] Web Triggered SHUTDOWN!")
+                        update_oled("SYSTEM SHUTDOWN", "Goodbye.")
+                        os.system("sudo halt")
+                        stop_threads = True
                     elif kiosk_reset != -1:
                         last_test_state = False
                 
