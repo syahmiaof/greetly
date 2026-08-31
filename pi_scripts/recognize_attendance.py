@@ -1,150 +1,233 @@
-import cv2
-import time
+from datetime import datetime
 import os
-from supabase import create_client, Client
-from datetime import datetime, timezone
-import face_recognition
+import time
+import threading
+from dotenv import load_dotenv
+import cv2
 import numpy as np
+from supabase import Client, create_client
+import RPi.GPIO as GPIO
+import Adafruit_SSD1306
+from PIL import Image, ImageDraw, ImageFont
 
-# --- Configuration ---
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "https://your-project.supabase.co")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "your-anon-key")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# ==========================================
+# 1. SETUP HARDWARE (BUZZER & OLED)
+# ==========================================
+BUZZER_PIN = 12 
+GPIO.setwarnings(False)
+GPIO.setmode(GPIO.BCM)
 
-# --- State ---
-last_attendance_times = {}
-hardware_config = {"cooldown_seconds": 60, "gate_locked": False}
-last_config_fetch = 0
-CONFIG_FETCH_INTERVAL = 10  # fetch config every 10 seconds
+# HACK IoT: Gunakan teknik "Open-Drain"
+# Set pin sebagai INPUT (terapung/High-Z) supaya 5V dari buzzer tak dapat mengalir ke Ground. Ini akan paksa buzzer senyap.
+GPIO.setup(BUZZER_PIN, GPIO.IN, pull_up_down=GPIO.PUD_OFF)
 
-def update_hardware_config():
-    """Fetches the hardware config periodically to avoid lagging the video feed."""
-    global hardware_config, last_config_fetch
-    current_time = time.time()
-    if current_time - last_config_fetch > CONFIG_FETCH_INTERVAL:
-        try:
-            response = supabase.table("hardware_config").select("*").limit(1).execute()
-            if response.data:
-                hardware_config = response.data[0]
-                last_config_fetch = current_time
-        except Exception as e:
-            print(f"Error fetching hardware config: {e}")
+try:
+    disp = Adafruit_SSD1306.SSD1306_128_64(rst=None, i2c_address=0x3C)
+    disp.begin()
+    disp.clear()
+    disp.display()
+    oled_font = ImageFont.load_default()
+    oled_active = True
+except Exception as e:
+    print(f"[-] OLED Error: {e}")
+    oled_active = False
 
-def get_student_id_by_matric(matric_no):
-    """Retrieves the UUID of a student from the students table using their matric_no."""
+def update_oled(line1, line2):
+    if not oled_active: return
     try:
-        response = supabase.table("students").select("id").eq("matric_no", matric_no).execute()
-        if response.data:
-            return response.data[0]["id"]
-    except Exception as e:
-        print(f"Error fetching student ID for {matric_no}: {e}")
-    return None
+        image = Image.new('1', (disp.width, disp.height))
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((0, 0, disp.width - 1, disp.height - 1), outline=255, fill=0)
+        draw.text((10, 15), line1, font=oled_font, fill=255)
+        draw.text((10, 35), line2, font=oled_font, fill=255)
+        disp.image(image)
+        disp.display()
+    except: pass
 
-def log_attendance(student_id):
-    """Inserts an attendance record for the given student UUID."""
+def clear_oled():
+    if not oled_active: return
     try:
-        data = {
-            "student_id": student_id,
-            "status": "present",
-            # "timestamp": datetime.now(timezone.utc).isoformat()  # Uncomment if timestamp is not auto-generated
-        }
-        supabase.table("attendance_logs").insert(data).execute()
-        print(f"Successfully logged attendance for student_id: {student_id}")
-    except Exception as e:
-        print(f"Error logging attendance: {e}")
+        disp.clear()
+        disp.display()
+    except: pass
 
-def load_known_faces():
-    """
-    Placeholder for loading known faces.
-    In a production system, you would load images/encodings from a local directory or Supabase Storage.
-    """
-    known_encodings = []
-    known_matric_nos = []
-    
-    # Example:
-    # image = face_recognition.load_image_file("known_faces/123456.jpg")
-    # encoding = face_recognition.face_encodings(image)[0]
-    # known_encodings.append(encoding)
-    # known_matric_nos.append("123456")
-    
-    print("Loaded known faces (placeholder).")
-    return known_encodings, known_matric_nos
+def trigger_buzzer(duration=0.5):
+    # Tukar ke OUTPUT dan LOW (0V) untuk bagi elektrik mengalir dan bunyikan buzzer
+    GPIO.setup(BUZZER_PIN, GPIO.OUT, initial=GPIO.LOW)
+    time.sleep(duration)
+    # Tukar balik ke INPUT untuk terapungkan pin dan matikan bunyi
+    GPIO.setup(BUZZER_PIN, GPIO.IN, pull_up_down=GPIO.PUD_OFF)
 
-def main():
-    known_encodings, known_matric_nos = load_known_faces()
-    
-    video_capture = cv2.VideoCapture(0)
-    print("Starting face recognition...")
+update_oled("ATTENDANCE SYSTEM", "Status: STANDBY...")
 
-    while True:
-        ret, frame = video_capture.read()
-        if not ret:
-            print("Failed to grab frame")
-            break
-            
-        update_hardware_config()
-        
-        # Check if gate is locked
-        if hardware_config.get("gate_locked", False):
-            cv2.putText(frame, "GATE LOCKED", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-            cv2.imshow("Attendance System", frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-            time.sleep(0.5)
-            continue
-            
-        cooldown = hardware_config.get("cooldown_seconds", 60)
+# ==========================================
+# 2. SETUP SUPABASE & WEB
+# ==========================================
+load_dotenv(".env.local")
+supabase = None
+if os.environ.get("NEXT_PUBLIC_SUPABASE_URL"):
+    supabase = create_client(os.environ.get("NEXT_PUBLIC_SUPABASE_URL"), os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY"))
 
-        # Resize frame of video to 1/4 size for faster face recognition processing
-        small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
-        rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+HARDWARE_CONFIG = {"cooldown_seconds": 120, "buzzer_duration": 0.5, "gate_locked": False}
+stop_threads = False
 
-        face_locations = face_recognition.face_locations(rgb_small_frame)
-        face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
-
-        for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
-            matches = face_recognition.compare_faces(known_encodings, face_encoding)
-            matric_no = "Unknown"
-
-            if known_encodings:
-                face_distances = face_recognition.face_distance(known_encodings, face_encoding)
-                best_match_index = np.argmin(face_distances)
-                if matches[best_match_index]:
-                    matric_no = known_matric_nos[best_match_index]
-
-            # Scale back up face locations since the frame we detected in was scaled to 1/4 size
-            top *= 4
-            right *= 4
-            bottom *= 4
-            left *= 4
-
-            # Draw a box around the face
-            cv2.rectangle(frame, (left, top), (right, bottom), (0, 255, 0), 2)
-            cv2.putText(frame, matric_no, (left + 6, bottom - 6), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (255, 255, 255), 1)
-
-            if matric_no != "Unknown":
-                current_time = time.time()
-                last_time = last_attendance_times.get(matric_no, 0)
+def sync_hardware_config():
+    global HARDWARE_CONFIG
+    last_test_state = False
+    while not stop_threads:
+        if supabase:
+            try:
+                res = supabase.table("hardware_config").select("*").eq("id", 1).execute()
+                if len(res.data) > 0:
+                    HARDWARE_CONFIG["cooldown_seconds"] = res.data[0].get("cooldown_seconds", 120)
+                    HARDWARE_CONFIG["buzzer_duration"] = res.data[0].get("buzzer_duration", 0.5)
+                    HARDWARE_CONFIG["gate_locked"] = res.data[0].get("gate_locked", False)
+                    
+                    kiosk_reset = res.data[0].get("kiosk_reset", 30)
+                    if kiosk_reset == -1 and not last_test_state:
+                        last_test_state = True
+                        print("[!] Web Triggered Test Buzzer!")
+                        threading.Thread(target=trigger_buzzer, args=(HARDWARE_CONFIG["buzzer_duration"],), daemon=True).start()
+                    elif kiosk_reset != -1:
+                        last_test_state = False
                 
-                # Check cooldown before logging attendance again
-                if current_time - last_time > cooldown:
-                    student_id = get_student_id_by_matric(matric_no)
-                    if student_id:
-                        log_attendance(student_id)
-                        last_attendance_times[matric_no] = current_time
-                        cv2.putText(frame, "LOGGED", (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 0), 2)
+                # Update Telemetry so Web shows "Online"
+                cpu_temp = 45.0
+                try:
+                    with open('/sys/class/thermal/thermal_zone0/temp', 'r') as f:
+                        cpu_temp = round(float(f.read()) / 1000.0, 1)
+                except:
+                    pass
+                try:
+                    cpu_load = round(os.getloadavg()[0] / os.cpu_count() * 100, 1)
+                except:
+                    cpu_load = 15.0
+                
+                supabase.table("hardware_config").update({
+                    "last_ping": datetime.utcnow().isoformat() + "Z",
+                    "temperature": cpu_temp,
+                    "cpu_load": cpu_load
+                }).eq("id", 1).execute()
+
+            except Exception as e: 
+                print(f"[-] Config Sync Error: {e}")
+        time.sleep(2)
+
+threading.Thread(target=sync_hardware_config, daemon=True).start()
+
+# ==========================================
+# 3. FACE RECOGNITION SETUP
+# ==========================================
+PROFILES_DIR = "profiles"
+face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+recognizer = cv2.face.LBPHFaceRecognizer_create()
+
+def train_face_recognizer():
+    faces, labels, label_map, current_id = [], [], {}, 0
+    if not os.path.exists(PROFILES_DIR): return None, None
+    for student_name in os.listdir(PROFILES_DIR):
+        student_path = os.path.join(PROFILES_DIR, student_name)
+        if not os.path.isdir(student_path): continue
+        label_map[current_id] = student_name
+        for img_name in os.listdir(student_path):
+            gray_img = cv2.imread(os.path.join(student_path, img_name), cv2.IMREAD_GRAYSCALE)
+            if gray_img is not None:
+                faces.append(gray_img)
+                labels.append(current_id)
+        current_id += 1
+    if faces: recognizer.train(faces, np.array(labels))
+    return recognizer, label_map
+
+recognizer, label_map = train_face_recognizer()
+if not label_map: exit(print("[-] No student profiles found."))
+
+cap = cv2.VideoCapture(0, cv2.CAP_V4L2)
+cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc("M", "J", "P", "G"))
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+
+print("\n[+] System READY.")
+last_scanned_time = {}
+last_scanned_name = None
+success_message_time = 0
+gate_was_locked = False
+
+# ==========================================
+# 4. MAIN LOOP
+# ==========================================
+try:
+    while True:
+        ret, frame = cap.read()
+        if not ret or frame is None: continue
+
+        if HARDWARE_CONFIG["gate_locked"]:
+            if not gate_was_locked:
+                update_oled("SYSTEM LOCKED!", "Scanner Disabled.")
+                gate_was_locked = True
+            cv2.putText(frame, "GATE LOCKED", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            cv2.imshow("Kiosk Mode", frame)
+            if cv2.waitKey(1) & 0xFF == ord("q"): break
+            continue
+        else:
+            if gate_was_locked:
+                update_oled("ATTENDANCE SYSTEM", "Status: STANDBY...")
+                gate_was_locked = False
+
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5, minSize=(30, 30))
+        current_time = time.time()
+
+        if last_scanned_name and (current_time - success_message_time < 3.0):
+            cv2.putText(frame, f"PRESENT: {last_scanned_name}", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 3)
+        else:
+            if last_scanned_name:
+                last_scanned_name = None
+                update_oled("ATTENDANCE SYSTEM", "Status: STANDBY...")
+
+            for x, y, w, h in faces:
+                face_roi = gray[y : y + h, x : x + w]
+                label_id, confidence = recognizer.predict(face_roi)
+
+                if confidence < 70:
+                    student_name = label_map.get(label_id, "Unknown")
+                    if current_time - last_scanned_time.get(student_name, 0) > HARDWARE_CONFIG["cooldown_seconds"]:
+                        last_scanned_time[student_name] = current_time
+                        last_scanned_name = student_name
+                        success_message_time = current_time
+                        
+                        update_oled("RECORDED", f"Name: {student_name}")
+                        buz_dur = float(HARDWARE_CONFIG.get("buzzer_duration", 0.5))
+                        threading.Thread(target=trigger_buzzer, args=(buz_dur,), daemon=True).start()
+
+                        if supabase:
+                            try:
+                                res = supabase.table("students").select("id").eq("student_name", student_name).execute()
+                                if len(res.data) > 0:
+                                    log_data = {"student_id": res.data[0]['id'], "status": "Present", "confidence_score": float(round(confidence, 1))}
+                                    supabase.table("attendance_logs").insert(log_data).execute()
+                                    print(f"[+] Synced to cloud: {student_name}")
+                            except Exception as e: 
+                                print(f"[-] Cloud Sync Error: {e}")
+                        box_color = (0, 255, 0)
                     else:
-                        cv2.putText(frame, "ID NOT FOUND", (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
+                        box_color = (255, 165, 0)
                 else:
-                    cv2.putText(frame, "COOLDOWN", (left, top - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 255, 255), 2)
+                    student_name, box_color = "Unknown", (0, 0, 255)
 
-        cv2.imshow("Attendance System", frame)
+                cv2.rectangle(frame, (x, y), (x + w, y + h), box_color, 2)
+                cv2.putText(frame, student_name, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, box_color, 2)
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        cv2.imshow("Kiosk Mode", frame)
+        if cv2.waitKey(1) & 0xFF == ord("q"): break
 
-    video_capture.release()
+except KeyboardInterrupt:
+    print("\n[!] Script stopped manually (Ctrl+C).")
+finally:
+    stop_threads = True
+    clear_oled()
+    # Letak pin buzzer ke INPUT sebelum exit untuk elak ia menjerit
+    GPIO.setup(BUZZER_PIN, GPIO.IN, pull_up_down=GPIO.PUD_OFF)
+    # GPIO.cleanup()
+    cap.release()
     cv2.destroyAllWindows()
-
-if __name__ == "__main__":
-    main()
+    print("[+] Cleanup complete. Hardware reset.")
