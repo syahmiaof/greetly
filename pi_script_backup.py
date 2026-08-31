@@ -63,10 +63,10 @@ update_oled("ATTENDANCE SYSTEM", "Status: STANDBY...")
 # ==========================================
 # 2. SETUP SUPABASE & WEB
 # ==========================================
-load_dotenv()
+load_dotenv(".env.local")
 supabase = None
-if os.environ.get("SUPABASE_URL"):
-    supabase = create_client(os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY"))
+if os.environ.get("NEXT_PUBLIC_SUPABASE_URL"):
+    supabase = create_client(os.environ.get("NEXT_PUBLIC_SUPABASE_URL"), os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY"))
 
 HARDWARE_CONFIG = {"cooldown_seconds": 120, "buzzer_duration": 0.5, "gate_locked": False}
 stop_threads = False
@@ -90,7 +90,27 @@ def sync_hardware_config():
                         threading.Thread(target=trigger_buzzer, args=(HARDWARE_CONFIG["buzzer_duration"],), daemon=True).start()
                     elif kiosk_reset != -1:
                         last_test_state = False
-            except: pass
+                
+                # Update Telemetry so Web shows "Online"
+                cpu_temp = 45.0
+                try:
+                    with open('/sys/class/thermal/thermal_zone0/temp', 'r') as f:
+                        cpu_temp = round(float(f.read()) / 1000.0, 1)
+                except:
+                    pass
+                try:
+                    cpu_load = round(os.getloadavg()[0] / os.cpu_count() * 100, 1)
+                except:
+                    cpu_load = 15.0
+                
+                supabase.table("hardware_config").update({
+                    "last_ping": datetime.utcnow().isoformat() + "Z",
+                    "temperature": cpu_temp,
+                    "cpu_load": cpu_load
+                }).eq("id", 1).execute()
+
+            except Exception as e: 
+                print(f"[-] Config Sync Error: {e}")
         time.sleep(2)
 
 threading.Thread(target=sync_hardware_config, daemon=True).start()
