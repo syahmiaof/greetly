@@ -103,11 +103,12 @@ def sync_hardware_config():
                 except:
                     cpu_load = 15.0
                 
-                supabase.table("hardware_config").update({
+                supabase.table("hardware_telemetry").upsert({
+                    "id": 1,
                     "last_ping": datetime.utcnow().isoformat() + "Z",
                     "temperature": cpu_temp,
                     "cpu_load": cpu_load
-                }).eq("id", 1).execute()
+                }).execute()
 
             except Exception as e: 
                 print(f"[-] Config Sync Error: {e}")
