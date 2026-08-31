@@ -198,7 +198,7 @@ try:
     window_open = False
     while True:
         # Handle Camera Standby (Sleep Mode) - Window Disappears
-        if not HARDWARE_CONFIG.get("kiosk_active", True):
+        if not HARDWARE_CONFIG.get("kiosk_active", True) and HARDWARE_CONFIG.get("pending_student") is None:
             if cap.isOpened():
                 cap.release()
                 update_oled("CAMERA OFFLINE", "Paused via Web.")
@@ -222,7 +222,7 @@ try:
         if not ret or frame is None: continue
 
         # Handle Gate Locked - Live Camera Feed with Red Text
-        if HARDWARE_CONFIG.get("gate_locked", False):
+        if HARDWARE_CONFIG.get("gate_locked", False) and HARDWARE_CONFIG.get("pending_student") is None:
             if not gate_was_locked:
                 update_oled("SYSTEM LOCKED!", "Scanner Disabled.")
                 gate_was_locked = True
@@ -273,6 +273,7 @@ try:
                     HARDWARE_CONFIG["pending_student"] = None
                     recognizer, label_map = train_face_recognizer()
                     update_oled("SUCCESS!", f"{student_name} registered.")
+                    trigger_buzzer(1.0)
                     time.sleep(2)
                 except Exception as e:
                     print("Failed to complete registration:", e)
