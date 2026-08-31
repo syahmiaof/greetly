@@ -74,9 +74,12 @@ stop_threads = False
 def sync_hardware_config():
     global HARDWARE_CONFIG, stop_threads
     last_test_state = False
+    sync_counter = 0
     while not stop_threads:
         if supabase:
             try:
+                sync_counter += 1
+                # Sync hardware config from DB
                 res = supabase.table("hardware_config").select("*").eq("id", 1).execute()
                 if len(res.data) > 0:
                     HARDWARE_CONFIG["cooldown_seconds"] = res.data[0].get("cooldown_seconds", 120)
@@ -97,7 +100,25 @@ def sync_hardware_config():
                         except: pass
                         os.system("sudo halt")
                         stop_threads = True
-                
+
+                # Every 10 seconds, sync local student folders with the database
+                if sync_counter % 5 == 0:
+                    res_students = supabase.table("students").select("student_name").execute()
+                    if res_students.data is not None:
+                        valid_names = [s["student_name"] for s in res_students.data]
+                        profiles_changed = False
+                        if os.path.exists(PROFILES_DIR):
+                            for folder_name in os.listdir(PROFILES_DIR):
+                                if folder_name not in valid_names:
+                                    print(f"[!] Deleting orphaned profile folder: {folder_name}")
+                                    import shutil
+                                    shutil.rmtree(os.path.join(PROFILES_DIR, folder_name), ignore_errors=True)
+                                    profiles_changed = True
+                        if profiles_changed:
+                            print("[!] Retraining model after profile deletion...")
+                            global recognizer, label_map
+                            recognizer, label_map = train_face_recognizer()
+
                 # Update Telemetry so Web shows "Online"
                 cpu_temp = 45.0
                 try:
