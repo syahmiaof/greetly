@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Camera, Trash2, User, Bell, Palette, Shield, Save, CheckCircle2, Server, Database, Globe, Phone, Building2 } from 'lucide-react';
+import { Camera, Trash2, User, Bell, Palette, Shield, Save, CheckCircle2, Server, Database, Globe, Phone, Building2, LogOut } from 'lucide-react';
 
 import { useAdminProfile } from '@/hooks/useAdminProfile';
 
@@ -60,16 +60,14 @@ export default function SettingsPage() {
     setProfileData({ ...profileData, avatar: null });
   };
 
-  const [theme, setTheme] = useState('aurora');
+  const [theme, setTheme] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('app-theme') || 'startup';
+    }
+    return 'startup';
+  });
 
   useEffect(() => {
-    // Attempt to read from localStorage on mount (optional, but good practice)
-    const savedTheme = localStorage.getItem('app-theme') || 'aurora';
-    setTheme(savedTheme);
-  }, []);
-
-  useEffect(() => {
-    // Apply theme to document root
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('app-theme', theme);
   }, [theme]);
@@ -311,6 +309,26 @@ export default function SettingsPage() {
                   </div>
                   
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* Theme 0: Startup (Default) */}
+                    <button 
+                      type="button"
+                      onClick={() => setTheme('startup')}
+                      className={`p-1 rounded-2xl transition-all ${theme === 'startup' ? 'bg-gradient-to-br from-emerald-500 to-emerald-900 shadow-[0_0_30px_rgba(16,185,129,0.4)] scale-[1.02]' : 'bg-white/10 hover:bg-white/20'}`}
+                    >
+                      <div className="bg-[#0a0d0c] p-4 rounded-xl h-full flex flex-col gap-4">
+                        <div className="w-full h-32 rounded-lg bg-[#0a0d0c] flex items-center justify-center border border-white/10 overflow-hidden relative">
+                          {/* Grid background representation */}
+                          <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:12px_12px]"></div>
+                          <div className="w-32 h-32 rounded-full bg-emerald-500/20 blur-xl absolute m-auto inset-0"></div>
+                          {theme === 'startup' && <CheckCircle2 className="text-emerald-400 relative z-10 drop-shadow-md" size={32} />}
+                        </div>
+                        <div className="text-left">
+                          <span className="font-bold text-lg text-white block">Deep Tech</span>
+                          <span className="text-xs text-slate-400">Default professional dark</span>
+                        </div>
+                      </div>
+                    </button>
+
                     {/* Theme 1: Aurora */}
                     <button 
                       type="button"
@@ -498,18 +516,29 @@ export default function SettingsPage() {
 
             {/* Form Actions (Sticky Bottom) */}
             <div className="bg-slate-950/80 backdrop-blur-md p-6 border-t border-white/10 flex justify-between items-center">
-              <p className="text-xs text-slate-400 hidden sm:block">Changes will be applied across the entire application.</p>
               <button 
-                type="submit"
-                disabled={isSaving}
-                className="w-full sm:w-auto flex justify-center items-center gap-2 px-8 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                type="button"
+                onClick={() => {
+                  import('@/app/login/actions').then((m) => m.logout());
+                }}
+                className="hidden sm:flex items-center gap-2 px-4 py-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors text-sm font-medium"
               >
-                {isSaving ? 'Saving Changes...' : (
-                  <>
-                    <Save size={18} /> Save Settings
-                  </>
-                )}
+                <LogOut size={16} /> Log Out
               </button>
+              <div className="flex w-full sm:w-auto items-center gap-4">
+                <p className="text-xs text-slate-400 hidden md:block">Changes will be applied across the entire application.</p>
+                <button 
+                  type="submit"
+                  disabled={isSaving}
+                  className="w-full sm:w-auto flex justify-center items-center gap-2 px-8 py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                >
+                  {isSaving ? 'Saving Changes...' : (
+                    <>
+                      <Save size={18} /> Save Settings
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
           </form>

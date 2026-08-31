@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Greetly - The Future of Smart Attendance</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&display=swap');
+    
+    body, html {
+      margin: 0;
+      padding: 0;
+      background-color: #0a0d0c; /* Matches the dark slate studio background of the image */
+      font-family: 'Space Grotesk', sans-serif;
+      color: #ecfdf5;
+    }
+
+    body {
+      overflow-x: hidden;
+    }
+
+    /* Navbar */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 2rem 4rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+      box-sizing: border-box;
+      pointer-events: auto;
+    }
+
+    .nav-logo {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #10b981;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2.5rem;
+    }
+
+    .nav-links a {
+      color: #ecfdf5;
+      text-decoration: none;
+      font-size: 1rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: color 0.3s;
+    }
+    .nav-links a:hover {
+      color: #10b981;
+    }
+
+    /* Scrollable track that forces the scrollbar */
+    #scroll-track {
+      height: 800vh;
+      position: relative;
+      z-index: 1; 
+    }
+
+    /* Pinned Canvas */
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      will-change: transform; /* Performance boost for mobile */
+    }
+
+    /* VIGNETTE OVERLAY */
+    .vignette {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, transparent 30%, #0a0d0c 90%);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* Content Overlay - Tech HUD Style */
+    .content-section {
+      position: fixed; 
+      width: 100vw;
+      height: 100vh;
+      top: 0;
+      left: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    .hud-element {
+      position: absolute;
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.8s ease, transform 0.8s ease;
+      max-width: 450px;
+      will-change: opacity, transform;
+    }
+
+    .hud-element.active {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    /* Minimalist Public-Friendly Typography */
+    .hud-title {
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: #10b981;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .hud-title::before {
+      content: '';
+      display: inline-block;
+      width: 30px;
+      height: 2px;
+      background: #10b981;
+    }
+
+    .hud-heading {
+      font-size: 3.5rem;
+      font-weight: 700;
+      margin: 0 0 1rem 0;
+      line-height: 1.1;
+      background: linear-gradient(90deg, #ffffff, #a7f3d0);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    .hud-desc {
+      font-size: 1.2rem;
+      color: #d1d5db;
+      line-height: 1.6;
+    }
+
+    /* Desktop Positioning - ALL TEXT ON THE SIDES TO AVOID BLOCKING THE DEVICE */
+    /* Step 1: Left Side */
+    #step-1 .hud-element { top: 35%; left: 10%; text-align: left; }
+    
+    /* Step 2: Right Side */
+    #step-2 .hud-element { top: 35%; right: 10%; text-align: right; }
+    #step-2 .hud-title { flex-direction: row-reverse; }
+
+    /* Step 3: Left Side */
+    #step-3 .hud-element { top: 35%; left: 10%; text-align: left; }
+    
+    /* Step 4: Right Side */
+    #step-4 .hud-element { top: 35%; right: 10%; text-align: right; }
+    #step-4 .hud-title { flex-direction: row-reverse; }
+
+    /* Normal Section slides OVER the fixed canvas */
+    .normal-section {
+      position: relative;
+      z-index: 20; 
+      background-color: #0a0d0c; 
+      padding: 100px 5%;
+      border-top: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .login-btn {
+      margin-top: 2rem;
+      padding: 1rem 3rem;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #050505;
+      background: linear-gradient(90deg, #34d399, #10b981);
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+      text-decoration: none;
+      display: inline-block;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .login-btn:hover {
+      box-shadow: 0 0 40px rgba(16, 185, 129, 0.8);
+      transform: translateY(-2px);
+    }
+
+    /* Mobile Optimization */
+    @media (max-width: 768px) {
+      .navbar {
+        padding: 1rem;
+      }
+      .nav-links {
+        display: none; /* Hide links on mobile for cleaner view */
+      }
+      .hud-heading {
+        font-size: 2.2rem;
+      }
+      .hud-desc {
+        font-size: 1rem;
+      }
+      .hud-element {
+        max-width: 90%;
+        padding: 0 1rem;
+      }
+      
+      /* Move all HUDs to the bottom on mobile to avoid blocking the device */
+      #step-1 .hud-element, #step-2 .hud-element, #step-3 .hud-element, #step-4 .hud-element {
+        top: auto;
+        bottom: 10%;
+        left: 50%;
+        right: auto;
+        transform: translate(-50%, 30px);
+        text-align: center;
+      }
+      #step-1 .hud-element.active, #step-2 .hud-element.active, #step-3 .hud-element.active, #step-4 .hud-element.active {
+        transform: translate(-50%, 0);
+      }
+      #step-2 .hud-title, #step-4 .hud-title {
+        flex-direction: row; /* reset direction */
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="nav-logo">Greetly</div>
+    <div class="nav-links">
+      <a href="#scroll-track">3D View</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="http://localhost:3000">Dashboard</a>
+    </div>
+  </nav>
+
+  <!-- Pinned Canvas for Image Sequence -->
+  <div id="canvas-container">
+    <canvas id="hero-canvas"></canvas>
+    <div class="vignette"></div>
+  </div>
+
+  <!-- Scroll Track forces the animation duration -->
+  <div id="scroll-track">
+    <!-- HUD Overlays (Fixed position, only visible based on scroll) -->
+    <div class="content-section" id="step-1">
+      <div class="hud-element">
+        <div class="hud-title">Welcome to Greetly</div>
+        <h1 class="hud-heading">Zero-Touch<br>Attendance</h1>
+        <p class="hud-desc">No cards to swipe. No screens to touch. Just walk in and you're recorded.</p>
+      </div>
+    </div>
+
+    <div class="content-section" id="step-2">
+      <div class="hud-element">
+        <div class="hud-title">Lightning Fast</div>
+        <h2 class="hud-heading">1.5 Seconds</h2>
+        <p class="hud-desc">Our smart camera recognizes faces instantly. It processes data directly on the device, meaning no waiting for internet delays.</p>
+      </div>
+    </div>
+
+    <div class="content-section" id="step-3">
+      <div class="hud-element">
+        <div class="hud-title">Super Secure</div>
+        <h2 class="hud-heading">No Cheating</h2>
+        <p class="hud-desc">Say goodbye to 'buddy-punching' (tolong punch kad kawan). The 3D depth sensor knows the difference between a real person and a photo.</p>
+      </div>
+    </div>
+
+    <div class="content-section" id="step-4">
+      <div class="hud-element">
+        <div class="hud-title">For Admins</div>
+        <h2 class="hud-heading">Live Dashboard</h2>
+        <p class="hud-desc">Teachers and managers can view attendance, generate reports, and manage students in real-time.</p>
+        <a href="http://localhost:3000" class="login-btn">Log In Now</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Normal Scrolling Section Below Animation -->
+  <section id="how-it-works" class="normal-section">
+    <div style="text-align: center; max-width: 800px; margin: 0 auto;">
+      <h1 class="hud-heading" style="font-size: 3rem;">Making Schools Smarter</h1>
+      <p class="hud-desc" style="margin-bottom: 2rem;">Greetly replaces old paper logs and slow punch cards with a seamless, futuristic experience. It saves time, saves paper, and keeps everyone safe.</p>
+      <div style="height: 300px; border: 1px dashed #10b981; display: flex; align-items:center; justify-content:center; color: #10b981; border-radius: 20px;">
+        [ More Information or Pictures Here ]
+      </div>
+    </div>
+  </section>
+
+  <script>
+    const canvas = document.getElementById("hero-canvas");
+    const context = canvas.getContext("2d");
+
+    const frameCount = 200;
+    const currentFrameSrc = index => (
+      `ezgif-643b0381add5532c-jpg/ezgif-frame-${index.toString().padStart(3, '0')}.jpg`
+    );
+
+    const images = [];
+    let imagesLoaded = 0;
+    
+    let currentFrame = 0;
+    let targetFrame = 0;
+    const ease = 0.08;
+
+    for (let i = 1; i <= frameCount; i++) {
+      const img = new Image();
+      img.src = currentFrameSrc(i);
+      img.onload = () => {
+        imagesLoaded++;
+        if (i === 1) resizeCanvas();
+      };
+      images.push(img);
+    }
+
+    const renderCanvas = () => {
+      const frameIndex = Math.round(currentFrame);
+      if (!images[frameIndex]) return;
+      
+      const img = images[frameIndex];
+      
+      // Scale to fit screen
+      const scale = Math.min(canvas.width / img.width, canvas.height / img.height) * 0.95;
+      
+      const drawWidth = img.width * scale;
+      const drawHeight = img.height * scale;
+      const offsetX = (canvas.width - drawWidth) / 2;
+      const offsetY = (canvas.height - drawHeight) / 2;
+
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+    }
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      renderCanvas();
+    }
+    
+    window.addEventListener('resize', resizeCanvas);
+
+    window.addEventListener('scroll', () => {  
+      const scrollTrack = document.getElementById('scroll-track');
+      const scrollTop = document.documentElement.scrollTop;
+      
+      // Calculate animation based ONLY on the scroll track height
+      const maxScrollTop = scrollTrack.offsetHeight - window.innerHeight;
+      let scrollFraction = scrollTop / maxScrollTop;
+      scrollFraction = Math.max(0, Math.min(1, scrollFraction));
+      
+      targetFrame = scrollFraction * (frameCount - 1);
+
+      // HUD Visibility Logic
+      const s1 = document.getElementById('step-1').querySelector('.hud-element');
+      const s2 = document.getElementById('step-2').querySelector('.hud-element');
+      const s3 = document.getElementById('step-3').querySelector('.hud-element');
+      const s4 = document.getElementById('step-4').querySelector('.hud-element');
+
+      [s1, s2, s3, s4].forEach(s => s.classList.remove('active'));
+
+      if (scrollFraction < 0.15) {
+        s1.classList.add('active');
+      } else if (scrollFraction > 0.25 && scrollFraction < 0.45) {
+        s2.classList.add('active');
+      } else if (scrollFraction > 0.55 && scrollFraction < 0.75) {
+        s3.classList.add('active');
+      } else if (scrollFraction > 0.85 && scrollFraction < 0.99) {
+        s4.classList.add('active');
+      }
+    });
+
+    function drawLoop() {
+      const diff = targetFrame - currentFrame;
+      if (Math.abs(diff) > 0.01) {
+        currentFrame += diff * ease;
+        renderCanvas();
+      }
+      requestAnimationFrame(drawLoop);
+    }
+
+    window.dispatchEvent(new Event('scroll'));
+    drawLoop();
+  </script>
+</body>
+</html>

@@ -1,15 +1,10 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const spaceGrotesk = Space_Grotesk({
+  variable: '--font-space-grotesk',
   subsets: ['latin'],
 });
 
@@ -24,18 +19,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${spaceGrotesk.variable} h-full antialiased`}>
       <head>
         <script dangerouslySetInnerHTML={{
           __html: `
             try {
-              let theme = localStorage.getItem('app-theme') || 'aurora';
+              let theme = localStorage.getItem('app-theme') || 'startup';
               document.documentElement.setAttribute('data-theme', theme);
             } catch (e) {}
           `
         }} />
       </head>
-      <body className="min-h-full flex flex-col md:flex-row text-slate-100 bg-transparent">
+      <body className="min-h-full flex flex-col md:flex-row text-slate-100 bg-transparent relative">
         <Navbar />
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 pb-32 md:pb-8 z-10 w-full">
           {children}

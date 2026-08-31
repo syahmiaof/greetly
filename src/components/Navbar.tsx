@@ -4,10 +4,16 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, History, Users, Settings, FileText, Cpu } from 'lucide-react';
+import { LayoutDashboard, History, Users, Settings, FileText, Cpu, Home } from 'lucide-react';
 
 export function Navbar() {
   const pathname = usePathname();
+  
+  // Do not show Navbar on the login page
+  if (pathname === '/login') {
+    return null;
+  }
+
   const [useGreetly, setUseGreetly] = useState(true);
 
   useEffect(() => {
@@ -86,6 +92,20 @@ export function Navbar() {
             </li>
           );
         })}
+
+        {/* Go To Homepage Button (Directly below Settings) */}
+        <li className="hidden md:block w-full mt-4 pt-4 border-t border-white/10">
+          <a 
+            href="/greetly.web/index.html" 
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open Landing Page"
+            className="flex w-full items-center justify-start gap-3 px-4 py-3 rounded-xl transition-all duration-300 group hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:border-emerald-500/80 shadow-[0_0_15px_rgba(16,185,129,0.1)] hover:shadow-[0_0_25px_rgba(16,185,129,0.3)]"
+          >
+            <Home size={20} className="text-emerald-400 group-hover:scale-110 transition-transform" />
+            <span className="tracking-wide text-sm font-semibold uppercase">Homepage</span>
+          </a>
+        </li>
       </ul>
       
     </nav>

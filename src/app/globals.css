@@ -1,9 +1,14 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: var(--font-space-grotesk), sans-serif;
+}
+
 @layer base {
   :root {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
+    --font-sans: var(--font-space-grotesk), sans-serif;
   }
 }
 
@@ -14,10 +19,23 @@ body {
   overflow-x: hidden;
 }
 
-/* Vibrant Emerald & Cyan Aurora Background (Default) */
-/* Vibrant Emerald & Cyan Aurora Background (Default) */
-:root[data-theme="aurora"] body::before,
+/* Deep Tech Startup Background (Default - Matches Landing Page Exactly) */
+:root[data-theme="startup"] body,
+:root:not([data-theme]) body {
+  background-color: #0a0d0c;
+}
+:root[data-theme="startup"] body::before,
 :root:not([data-theme]) body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: -2;
+  background: radial-gradient(ellipse at center, rgba(16, 185, 129, 0.08) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+/* Vibrant Emerald & Cyan Aurora Background */
+:root[data-theme="aurora"] body::before {
   content: '';
   position: fixed;
   top: -10%; left: -10%; right: -10%; bottom: -10%;
@@ -31,8 +49,7 @@ body {
 }
 
 /* Subtle animation layer for aurora */
-:root[data-theme="aurora"] body::after,
-:root:not([data-theme]) body::after {
+:root[data-theme="aurora"] body::after {
   content: '';
   position: fixed;
   top: -10%; left: -10%; right: -10%; bottom: -10%;
@@ -127,4 +144,14 @@ body {
 }
 :root[data-theme="light"] .glass-input {
   background: rgba(255, 255, 255, 0.8); border-color: rgba(0, 0, 0, 0.2); color: #0f172a;
+}
+
+/* Fix browser default autofill background (pale blue/yellow) */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #0a0d0c inset !important;
+  -webkit-text-fill-color: white !important;
+  transition: background-color 5000s ease-in-out 0s;
 }

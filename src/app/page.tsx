@@ -119,6 +119,15 @@ export default function DashboardPage() {
                 <Link href="/settings" className="flex items-center gap-2 px-3 py-2 text-sm text-slate-200 hover:bg-white/10 rounded-lg transition-colors w-full text-left">
                   <SettingsIcon size={14} /> Account Settings
                 </Link>
+                <div className="h-px w-full bg-white/10 my-1"></div>
+                <button 
+                  onClick={() => {
+                    import('@/app/login/actions').then((m) => m.logout());
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 text-sm text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors w-full text-left"
+                >
+                  <LogOut size={14} /> Log Out
+                </button>
               </div>
             )}
           </div>
