@@ -117,6 +117,13 @@ def sync_hardware_config():
                     "cpu_load": cpu_load
                 }).execute()
 
+                # Fetch Remote Registration
+                res_reg = supabase.table("students").select("*").eq("status", "pending_camera").execute()
+                if len(res_reg.data) > 0:
+                    HARDWARE_CONFIG["pending_student"] = res_reg.data[0]
+                else:
+                    HARDWARE_CONFIG["pending_student"] = None
+
             except Exception as e: 
                 print(f"[-] Config Sync Error: {e}")
         time.sleep(2)
@@ -192,6 +199,45 @@ try:
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5, minSize=(30, 30))
         current_time = time.time()
+
+        # Remote Registration Logic
+        if HARDWARE_CONFIG.get("pending_student") is not None:
+            student = HARDWARE_CONFIG["pending_student"]
+            student_name = student["student_name"]
+            student_id = student["id"]
+            
+            update_oled("REGISTERING...", student_name)
+            student_folder = os.path.join(PROFILES_DIR, student_name)
+            if not os.path.exists(student_folder):
+                os.makedirs(student_folder)
+            
+            count = len(os.listdir(student_folder))
+            if count < 20:
+                for x, y, w, h in faces:
+                    cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 255, 0), 2)
+                    if not hasattr(sync_hardware_config, "frame_delay"): sync_hardware_config.frame_delay = 0
+                    sync_hardware_config.frame_delay += 1
+                    if sync_hardware_config.frame_delay > 10:
+                        face_img = gray[y:y+h, x:x+w]
+                        cv2.imwrite(os.path.join(student_folder, f"img_{count}.jpg"), face_img)
+                        print(f"Captured {count+1}/20 for {student_name}")
+                        sync_hardware_config.frame_delay = 0
+                cv2.putText(frame, f"Registering: {count}/20", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
+                cv2.imshow("Kiosk Mode", frame)
+                if cv2.waitKey(1) & 0xFF == ord("q"): break
+                continue
+            else:
+                update_oled("TRAINING...", "Please wait.")
+                try:
+                    supabase.table("students").update({"status": "Active"}).eq("id", student_id).execute()
+                    HARDWARE_CONFIG["pending_student"] = None
+                    global recognizer, label_map
+                    recognizer, label_map = train_face_recognizer()
+                    update_oled("SUCCESS!", f"{student_name} registered.")
+                    time.sleep(2)
+                except Exception as e:
+                    print("Failed to complete registration:", e)
+                continue
 
         if last_scanned_name and (current_time - success_message_time < 3.0):
             cv2.putText(frame, f"PRESENT: {last_scanned_name}", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (0, 255, 0), 3)
