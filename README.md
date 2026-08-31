@@ -313,3 +313,19 @@ sudo nmcli connection modify preconfigured ipv4.dns "8.8.8.8 8.8.4.4"
 sudo nmcli connection modify preconfigured ipv4.ignore-auto-dns yes
 sudo nmcli connection up preconfigured
 ```
+
+---
+
+## 11. Marketing & AI Video Generation
+
+To create the 3D 'exploded-view' animation of the Greetly hardware for the landing page or investor pitch videos, use **Luma Dream Machine** or **Runway Gen-3** with the following prompt:
+
+> *"Cinematic 360-degree orbit product reveal. At the peak of the rotation, the hardware begins an elegant exploded-view breakdown. The outer casing detaches and floats outward, revealing the internal motherboard, camera module, and wiring. Soft volumetric lighting, highly detailed."*
+
+### Steps for buttery-smooth landing page animation:
+1. Upload the base 3D render of the Greetly hardware as an image reference.
+2. Generate a 5-second video using the prompt above.
+3. Convert the resulting .mp4 into an image sequence.
+4. Extract **150 to 250 frames** to ensure a high frame-rate scroll experience.
+5. Replace the files in public/greetly.web/ezgif-6d4320075cf41310-jpg with the new frames and update the rameCount in index.html accordingly.
+
