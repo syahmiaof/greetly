@@ -72,7 +72,7 @@ HARDWARE_CONFIG = {"cooldown_seconds": 120, "buzzer_duration": 0.5, "gate_locked
 stop_threads = False
 
 def sync_hardware_config():
-    global HARDWARE_CONFIG
+    global HARDWARE_CONFIG, stop_threads
     last_test_state = False
     while not stop_threads:
         if supabase:
@@ -231,7 +231,6 @@ try:
                 try:
                     supabase.table("students").update({"status": "Active"}).eq("id", student_id).execute()
                     HARDWARE_CONFIG["pending_student"] = None
-                    global recognizer, label_map
                     recognizer, label_map = train_face_recognizer()
                     update_oled("SUCCESS!", f"{student_name} registered.")
                     time.sleep(2)
