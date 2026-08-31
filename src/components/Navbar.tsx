@@ -30,7 +30,7 @@ export function Navbar() {
   };
 
   const navItems = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Monitor', path: '/attendance', icon: FileText },
     { name: 'Records', path: '/records', icon: History },
     { name: 'Students', path: '/students', icon: Users },
