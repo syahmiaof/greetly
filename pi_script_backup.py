@@ -82,14 +82,21 @@ def sync_hardware_config():
                     HARDWARE_CONFIG["cooldown_seconds"] = res.data[0].get("cooldown_seconds", 120)
                     HARDWARE_CONFIG["buzzer_duration"] = res.data[0].get("buzzer_duration", 0.5)
                     HARDWARE_CONFIG["gate_locked"] = res.data[0].get("gate_locked", False)
+                    HARDWARE_CONFIG["kiosk_active"] = res.data[0].get("kiosk_active", True)
                     
                     kiosk_reset = res.data[0].get("kiosk_reset", 30)
-                    if kiosk_reset == -1 and not last_test_state:
-                        last_test_state = True
+                    if kiosk_reset == -1:
                         print("[!] Web Triggered Test Buzzer!")
                         threading.Thread(target=trigger_buzzer, args=(HARDWARE_CONFIG["buzzer_duration"],), daemon=True).start()
-                    elif kiosk_reset != -1:
-                        last_test_state = False
+                        try: supabase.table("hardware_config").update({"kiosk_reset": 30}).eq("id", 1).execute()
+                        except: pass
+                    elif kiosk_reset == -99:
+                        print("[!] Web Triggered SHUTDOWN!")
+                        update_oled("SYSTEM SHUTDOWN", "Goodbye.")
+                        try: supabase.table("hardware_config").update({"kiosk_reset": 30}).eq("id", 1).execute()
+                        except: pass
+                        os.system("sudo halt")
+                        stop_threads = True
                 
                 # Update Telemetry so Web shows "Online"
                 cpu_temp = 45.0
@@ -103,11 +110,12 @@ def sync_hardware_config():
                 except:
                     cpu_load = 15.0
                 
-                supabase.table("hardware_config").update({
+                supabase.table("hardware_telemetry").upsert({
+                    "id": 1,
                     "last_ping": datetime.utcnow().isoformat() + "Z",
                     "temperature": cpu_temp,
                     "cpu_load": cpu_load
-                }).eq("id", 1).execute()
+                }).execute()
 
             except Exception as e: 
                 print(f"[-] Config Sync Error: {e}")
@@ -160,7 +168,8 @@ try:
         ret, frame = cap.read()
         if not ret or frame is None: continue
 
-        if HARDWARE_CONFIG["gate_locked"]:
+        # Handle Gate Locked
+        if HARDWARE_CONFIG.get("gate_locked", False):
             if not gate_was_locked:
                 update_oled("SYSTEM LOCKED!", "Scanner Disabled.")
                 gate_was_locked = True
@@ -168,10 +177,17 @@ try:
             cv2.imshow("Kiosk Mode", frame)
             if cv2.waitKey(1) & 0xFF == ord("q"): break
             continue
-        else:
-            if gate_was_locked:
-                update_oled("ATTENDANCE SYSTEM", "Status: STANDBY...")
-                gate_was_locked = False
+        elif gate_was_locked:
+            update_oled("ATTENDANCE SYSTEM", "Status: STANDBY...")
+            gate_was_locked = False
+
+        # Handle Camera Standby
+        if not HARDWARE_CONFIG.get("kiosk_active", True):
+            update_oled("CAMERA OFFLINE", "Paused via Web.")
+            cv2.putText(frame, "CAMERA OFFLINE", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+            cv2.imshow("Kiosk Mode", frame)
+            if cv2.waitKey(1) & 0xFF == ord("q"): break
+            continue
 
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5, minSize=(30, 30))

@@ -78,10 +78,10 @@ This diagram explains exactly how the hardware modules (Camera, OLED, Buzzer) in
 
 ```mermaid
 sequenceDiagram
-    participant Hardware as =ƒô+/=ƒôƒ Hardware (Cam/OLED/Buzzer)
-    participant Python as =ƒìô Raspberry Pi 3 (Python)
-    participant Supabase as Gÿün+Å Supabase (Cloud Database)
-    participant NextJS as =ƒÆ+ Web Dashboard (Next.js)
+    participant Hardware as =ÂƒÃ´+/=ÂƒÃ´Âƒ Hardware (Cam/OLED/Buzzer)
+    participant Python as =ÂƒÃ¬Ã´ Raspberry Pi 3 (Python)
+    participant Supabase as GÃ¿Ã¼n+Ã… Supabase (Cloud Database)
+    participant NextJS as =ÂƒÃ†+ Web Dashboard (Next.js)
 
     Note over Hardware, Python: 1. Hardware Polling & Adjustment
     NextJS->>Supabase: Admin changes Settings (e.g., Cooldown)
@@ -158,7 +158,13 @@ The physical attendance kiosk runs on a Raspberry Pi 3 with the following periph
 - **Raspberry Pi Camera:** Captures the live video feed. Enabled via `raspi-config`.
 - **SSD1306 OLED Display:** Connected via I2C (`SDA`, `SCL`). Displays system status, time, and immediate feedback.
 - **Active-Low Buzzer:** Connected to **BCM 4** (GPIO 4). Provides audio feedback (a short beep) when a face is successfully recognized. 
-  *(Note: Driving the pin `LOW` turns the buzzer on, and `HIGH` turns it off.)*
+  > [!CAUTION]
+  > **CRITICAL HARDWARE WARNING**
+  > 1. The Active-Low Buzzer is connected directly between the Pi's 5V pin and BCM 4 (GPIO 4).
+  > 2. Because of this 5V to 3.3V mismatch, you CANNOT use standard GPIO.OUT with GPIO.HIGH to turn the buzzer off. Doing so causes a 1.7V drop across the buzzer, making it scream continuously.
+  > 3. The ONLY way to silence the buzzer is to use the "High-Z Open-Drain Hack": you MUST set the pin to `GPIO.IN` (with `pull_up_down=GPIO.PUD_OFF`) to float the pin and stop all current from flowing to Ground. 
+  > 4. To sound the buzzer, you set the pin to `GPIO.OUT` with `initial=GPIO.LOW` to complete the circuit to Ground.
+  > 5. NEVER remove this hack from `pi_scripts/recognize_attendance.py`, or the user will go deaf.
 
 ---
 
@@ -253,43 +259,43 @@ The admin settings page uses a highly optimized `useAdminProfile` React Hook int
 
 Greetly solves critical operational and administrative bottlenecks in modern educational institutions. Below are 10 core value propositions tailored for potential investors and stakeholders:
 
-### GÅ¦n+Å 1. Recovering Lost Instruction Time (General)
+### GÃ…Â¦n+Ã… 1. Recovering Lost Instruction Time (General)
 - **Problem:** Manual attendance taking consumes approximately 10-15 minutes of precious lecture time per class.
 - **Solution:** Greetly's zero-touch biometric scanning processes a student in under 1.5 seconds, recovering up to **90% of lost instruction time**, allowing educators to focus purely on teaching.
 
-### =ƒÄ» 2. Eliminating Fraudulent Records (General)
+### =ÂƒÃ„Â» 2. Eliminating Fraudulent Records (General)
 - **Problem:** Buddy punching and forged manual signatures lead to inaccurate truancy records.
 - **Solution:** Utilizing precise facial encodings ensures 100% true identity verification, reducing truancy mapping errors by **100%** compared to traditional paper or ID card systems.
 
-### =ƒôë 3. Drastic Reduction in Administrative Workload (General)
+### =ÂƒÃ´Ã« 3. Drastic Reduction in Administrative Workload (General)
 - **Problem:** Administrators spend countless hours manually keying in paper attendance sheets into central school databases.
-- **Solution:** GreetlyGÇÖs real-time Supabase cloud sync eliminates manual data entry completely, reducing the administrative attendance workload by **80%** and freeing staff for higher-value tasks.
+- **Solution:** GreetlyGÃ‡Ã–s real-time Supabase cloud sync eliminates manual data entry completely, reducing the administrative attendance workload by **80%** and freeing staff for higher-value tasks.
 
-### =ƒæün+Å 4. Instant Visibility for Stakeholders (General)
+### =ÂƒÃ¦Ã¼n+Ã… 4. Instant Visibility for Stakeholders (General)
 - **Problem:** Parents and school management often only discover absenteeism patterns at the end of the semester.
 - **Solution:** The Next.js live dashboard provides instant, real-time visibility. Stakeholders can immediately intervene when a student is flagged as absent for consecutive days.
 
-### =ƒÜÇ 5. Blazing Fast Edge Computing (Technical)
+### =ÂƒÃœÃ‡ 5. Blazing Fast Edge Computing (Technical)
 - **Problem:** Sending raw video feeds to the cloud for processing consumes massive internet bandwidth, causing severe lag and high server costs.
 - **Solution:** Greetly utilizes Edge Computing on the Raspberry Pi 3. OpenCV processes the video locally, and only lightweight text data (a UUID) is transmitted to the cloud, making it blazing fast even on unstable 3G networks.
 
-### =ƒöö 6. Tri-Feedback Hardware Loop (Technical)
+### =ÂƒÃ¶Ã¶ 6. Tri-Feedback Hardware Loop (Technical)
 - **Problem:** Users are often unsure if a biometric system successfully registered their presence, causing traffic bottlenecks as they scan multiple times.
 - **Solution:** Greetly features a proprietary tri-feedback system: a bounding box on the screen, a custom OLED name display, and an active-low buzzer beep. This guarantees immediate, satisfying confirmation for the user.
 
-### =ƒ¢ín+Å 7. Anti-Spam "Sudah Hadir" Cooldown Engine (Technical)
+### =ÂƒÂ¢Ã­n+Ã… 7. Anti-Spam "Sudah Hadir" Cooldown Engine (Technical)
 - **Problem:** Traditional facial systems spam the database with duplicate logs if a person lingers in front of the camera.
-- **Solution:** We engineered a custom local caching cooldown loop. If a student is detected twice within the configured window, it provides visual feedback ("Sudah Hadir") without triggering a database writeGÇösaving cloud storage costs and preventing API rate limits.
+- **Solution:** We engineered a custom local caching cooldown loop. If a student is detected twice within the configured window, it provides visual feedback ("Sudah Hadir") without triggering a database writeGÃ‡Ã¶saving cloud storage costs and preventing API rate limits.
 
-### =ƒöä 8. Zero-Downtime OTA Deployment (Technical)
+### =ÂƒÃ¶Ã¤ 8. Zero-Downtime OTA Deployment (Technical)
 - **Problem:** Updating software on IoT devices scattered across a campus usually requires manual USB flashing or SSH, leading to high maintenance costs.
 - **Solution:** Greetly is hooked to a Vercel CI/CD pipeline, and the Supabase `hardware_config` table acts as an Over-The-Air (OTA) remote control. Admins can lock gates or tweak scanner settings globally from a single browser tab.
 
-### =ƒöÆ 9. Strict Data Privacy & Dynamic Sync (Technical)
+### =ÂƒÃ¶Ã† 9. Strict Data Privacy & Dynamic Sync (Technical)
 - **Problem:** Deleted students' biometric data often lingers on legacy hardware devices, violating PDPA (Personal Data Protection Act) laws.
 - **Solution:** Our Supabase Realtime triggers ensure that deleting a student on the web dashboard instantly purges their facial encodings from the Raspberry Pi's local memory, maintaining strict compliance.
 
-### =ƒÆ¦ 10. Cost-Effective Enterprise Scalability (General)
+### =ÂƒÃ†Â¦ 10. Cost-Effective Enterprise Scalability (General)
 - **Problem:** Enterprise attendance systems require proprietary, expensive hardware and hefty on-premise server licensing.
 - **Solution:** By combining affordable off-the-shelf components (Raspberry Pi 3, SSD1306) with Serverless PaaS architectures (Supabase/Vercel), Greetly achieves enterprise-grade performance at a fraction of the traditional cost, making it highly scalable for any institution.
 
