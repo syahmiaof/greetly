@@ -123,6 +123,22 @@ export default function HardwarePage() {
     }
   };
 
+  const handleRestart = async () => {
+    if (confirm('Are you sure you want to RESTART the Raspberry Pi? It will reboot automatically.')) {
+      setIsRebooting(true); 
+      await supabase.from('hardware_config').upsert({
+        id: 1,
+        cooldown_seconds: cooldown,
+        buzzer_duration: buzzerDuration,
+        kiosk_reset: -98 // Secret restart code
+      });
+      setTimeout(() => {
+        setIsRebooting(false);
+        showToast('Device restarting...');
+      }, 2000);
+    }
+  };
+
   const handleTestBuzzer = async () => {
     setIsTestingBuzzer(true);
     
@@ -342,6 +358,18 @@ export default function HardwarePage() {
                 <div className={`w-10 h-6 rounded-full p-1 transition-colors ${kioskActive ? 'bg-emerald-500' : 'bg-slate-700'}`}>
                   <div className={`w-4 h-4 rounded-full bg-white transition-transform ${kioskActive ? 'translate-x-4' : 'translate-x-0'}`}></div>
                 </div>
+              </button>
+
+              <button 
+                onClick={handleRestart}
+                disabled={isRebooting}
+                className="flex items-center justify-between p-4 rounded-xl bg-slate-900/50 hover:bg-blue-500/10 border border-white/5 hover:border-blue-500/30 transition-all group"
+              >
+                <div className="flex items-center gap-3">
+                  <RefreshCw size={18} className="text-slate-400 group-hover:text-blue-400 transition-colors" />
+                  <span className="font-semibold text-slate-200">Restart Raspberry Pi</span>
+                </div>
+                {isRebooting ? <RefreshCw size={16} className="animate-spin text-blue-400" /> : null}
               </button>
 
               <button 
