@@ -304,10 +304,11 @@ try:
                     cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 255, 0), 2)
                     if not hasattr(sync_hardware_config, "frame_delay"): sync_hardware_config.frame_delay = 0
                     sync_hardware_config.frame_delay += 1
-                    if sync_hardware_config.frame_delay > 10:
+                    if sync_hardware_config.frame_delay > 3:
                         face_img = gray[y:y+h, x:x+w]
                         cv2.imwrite(os.path.join(student_folder, f"img_{count}.jpg"), face_img)
                         print(f"Captured {count+1}/20 for {student_name}")
+                        threading.Thread(target=trigger_buzzer, args=(0.1,), daemon=True).start()
                         sync_hardware_config.frame_delay = 0
                 cv2.putText(frame, f"Registering: {count}/20", (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
                 cv2.imshow("Kiosk Mode", frame)
