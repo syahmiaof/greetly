@@ -1,5 +1,7 @@
 from datetime import datetime
 import os
+import json
+from datetime import datetime
 import time
 import threading
 from dotenv import load_dotenv
@@ -31,6 +33,36 @@ try:
 except Exception as e:
     print(f"[-] OLED Error: {e}")
     oled_active = False
+
+
+OFFLINE_QUEUE_FILE = "offline_queue.json"
+
+def save_offline_log(log_data):
+    try:
+        queue = []
+        if os.path.exists(OFFLINE_QUEUE_FILE):
+            with open(OFFLINE_QUEUE_FILE, "r") as f:
+                queue = json.load(f)
+        queue.append(log_data)
+        with open(OFFLINE_QUEUE_FILE, "w") as f:
+            json.dump(queue, f)
+        print(f"[*] Saved offline log for {log_data.get('student_id')}")
+    except Exception as e:
+        print(f"[-] Offline Queue Error: {e}")
+
+def process_offline_queue():
+    if not supabase or not os.path.exists(OFFLINE_QUEUE_FILE):
+        return
+    try:
+        with open(OFFLINE_QUEUE_FILE, "r") as f:
+            queue = json.load(f)
+        if len(queue) > 0:
+            print(f"[*] Attempting to sync {len(queue)} offline logs...")
+            res = supabase.table("attendance_logs").insert(queue).execute()
+            print("[+] Successfully synced offline logs!")
+            os.remove(OFFLINE_QUEUE_FILE) # Clear queue
+    except Exception as e:
+        print(f"[-] Failed to sync offline queue: {e}")
 
 def update_oled(line1, line2):
     if not oled_active: return
@@ -83,6 +115,11 @@ def sync_hardware_config():
         if supabase:
             try:
                 sync_counter += 1
+                
+                # Process any offline logs
+                if sync_counter % 3 == 0:
+                    process_offline_queue()
+                
                 # Sync hardware config from DB
                 res = supabase.table("hardware_config").select("*").eq("id", 1).execute()
                 if len(res.data) > 0:
@@ -97,6 +134,14 @@ def sync_hardware_config():
                         threading.Thread(target=trigger_buzzer, args=(float(HARDWARE_CONFIG.get("buzzer_duration", 0.5)),), daemon=True).start()
                         try: supabase.table("hardware_config").update({"kiosk_reset": 30}).eq("id", 1).execute()
                         except: pass
+                    elif kiosk_reset == -98:
+                        print("[!] Web Triggered RESTART!")
+                        update_oled("SYSTEM RESTART", "Rebooting...")
+                        trigger_buzzer(1.0)
+                        try: supabase.table("hardware_config").update({"kiosk_reset": 30}).eq("id", 1).execute()
+                        except: pass
+                        os.system("sudo reboot")
+                        stop_threads = True
                     elif kiosk_reset == -99:
                         print("[!] Web Triggered SHUTDOWN!")
                         update_oled("SYSTEM SHUTDOWN", "Goodbye.")
@@ -316,11 +361,20 @@ try:
                             try:
                                 res = supabase.table("students").select("id").eq("student_name", student_name).execute()
                                 if len(res.data) > 0:
-                                    log_data = {"student_id": res.data[0]['id'], "status": "Present", "confidence_score": float(round(confidence, 1))}
-                                    supabase.table("attendance_logs").insert(log_data).execute()
-                                    print(f"[+] Synced to cloud: {student_name}")
+                                    log_data = {
+                                        "student_id": res.data[0]['id'], 
+                                        "status": "Present", 
+                                        "confidence_score": float(round(confidence, 1)),
+                                        "timestamp": datetime.utcnow().isoformat() + "Z"
+                                    }
+                                    try:
+                                        supabase.table("attendance_logs").insert(log_data).execute()
+                                        print(f"[+] Synced to cloud: {student_name}")
+                                    except Exception as e:
+                                        print(f"[-] Cloud Sync Error: {e}. Queueing offline.")
+                                        save_offline_log(log_data)
                             except Exception as e: 
-                                print(f"[-] Cloud Sync Error: {e}")
+                                print(f"[-] Student Lookup Error: {e}")
                         box_color = (0, 255, 0)
                     else:
                         student_name = f"{student_name} (Sudah Hadir)"
