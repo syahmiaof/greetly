@@ -97,17 +97,16 @@ export default function CopilotPage() {
   };
 
   // Determine active topic based on the last message in the chat to change infographics
-  const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
-  const lastMessageContent = lastMsg 
-    ? (lastMsg.content || (lastMsg.parts ? lastMsg.parts.map((p:any) => p.text).join("") : "")).toLowerCase() 
-    : '';
+  // Determine active topic based on the LAST USER MESSAGE to prevent brittle switching based on AI's output
+  const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+  const lastUserContent = lastUserMsg ? lastUserMsg.content.toLowerCase() : '';
   let activeTopic = 'summary';
   
-  if (lastMessageContent.includes('absent') || lastMessageContent.includes('ponteng') || lastMessageContent.includes('tidak hadir') || lastMessageContent.includes('missing')) {
+  if (lastUserContent.includes('absent') || lastUserContent.includes('ponteng') || lastUserContent.includes('tidak hadir') || lastUserContent.includes('missing')) {
     activeTopic = 'absent';
-  } else if (lastMessageContent.includes('hardware') || lastMessageContent.includes('status') || lastMessageContent.includes('kamera') || lastMessageContent.includes('online')) {
+  } else if (lastUserContent.includes('hardware') || lastUserContent.includes('kamera') || lastUserContent.includes('pi') || lastUserContent.includes('raspberry')) {
     activeTopic = 'hardware';
-  } else if (lastMessageContent.includes('late') || lastMessageContent.includes('lewat') || lastMessageContent.includes('lambat')) {
+  } else if (lastUserContent.includes('late') || lastUserContent.includes('lewat') || lastUserContent.includes('lambat')) {
     activeTopic = 'late';
   }
 
