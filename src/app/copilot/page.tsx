@@ -1,11 +1,34 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 
 import { useChat } from '@ai-sdk/react';
-import { Bot, Send, User, Sparkles, Activity, FileText } from 'lucide-react';
+import { Bot, Send, User, Activity, FileText } from 'lucide-react';
 
 export default function CopilotPage() {
-  const { messages, input, handleInputChange, setInput, append, isLoading, error } = useChat({ onError: (e) => alert("Error: " + e.message) });
+  const [myInput, setMyInput] = useState('');
+  const { messages, append, isLoading } = useChat({ 
+    onError: (e) => alert("Error API: " + e.message) 
+  });
+
+  const handleSend = () => {
+    if (!myInput.trim() || isLoading) return;
+    const text = myInput;
+    setMyInput(''); // Kosongkan kotak teks
+    try {
+      append({ role: 'user', content: text });
+    } catch (err: any) {
+      alert("Gagal menghantar: " + err.message);
+    }
+  };
+
+  const sendSuggestion = (text: string) => {
+    if (isLoading) return;
+    try {
+      append({ role: 'user', content: text });
+    } catch (err: any) {
+      alert("Gagal menghantar cadangan: " + err.message);
+    }
+  };
 
   return (
     <div className="p-8 max-w-6xl mx-auto h-[calc(100vh-2rem)] flex flex-col">
@@ -27,14 +50,14 @@ export default function CopilotPage() {
               
               <div className="flex gap-4 mt-8">
                 <button 
-                  onClick={() => handleInputChange({ target: { value: 'Tunjukkan rumusan kedatangan hari ini.' } } as React.ChangeEvent<HTMLInputElement>)}
+                  onClick={() => sendSuggestion('Tunjukkan rumusan kedatangan hari ini.')}
                   className="bg-slate-800/50 hover:bg-slate-800 p-4 rounded-xl border border-white/5 transition flex items-center gap-3"
                 >
                   <Activity className="text-emerald-400" size={20} />
                   <span className="text-sm">Rumusan Hari Ini</span>
                 </button>
                 <button 
-                  onClick={() => handleInputChange({ target: { value: 'Senaraikan pelajar yang kerap ponteng minggu ini.' } } as React.ChangeEvent<HTMLInputElement>)}
+                  onClick={() => sendSuggestion('Senaraikan pelajar yang kerap ponteng minggu ini.')}
                   className="bg-slate-800/50 hover:bg-slate-800 p-4 rounded-xl border border-white/5 transition flex items-center gap-3"
                 >
                   <FileText className="text-rose-400" size={20} />
@@ -86,14 +109,12 @@ export default function CopilotPage() {
           <div className="flex gap-3 relative">
             <input
               className="flex-1 bg-slate-800 border border-white/10 rounded-xl px-6 py-4 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-slate-400 transition"
-              value={input}
-              onChange={handleInputChange}
+              value={myInput}
+              onChange={(e) => setMyInput(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault(); alert("Butang ditekan! Input: " + input);
-                  if (input && input.trim() !== '') {
-                    try { append({ role: 'user', content: input }); setInput(''); } catch (err: any) { alert(err.message); }
-                  }
+                  e.preventDefault();
+                  handleSend();
                 }
               }}
               placeholder="Tanya Greetly Copilot sesuatu..."
@@ -101,12 +122,10 @@ export default function CopilotPage() {
             />
             <button
               onClick={(e) => {
-                e.preventDefault(); alert("Butang ditekan! Input: " + input);
-                if (input && input.trim() !== '') {
-                  try { append({ role: 'user', content: input }); setInput(''); } catch (err: any) { alert(err.message); }
-                }
+                e.preventDefault();
+                handleSend();
               }}
-              disabled={isLoading || (!input || !input.trim())}
+              disabled={isLoading || myInput.trim() === ''}
               className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 rounded-xl transition flex items-center justify-center"
             >
               <Send size={20} />
