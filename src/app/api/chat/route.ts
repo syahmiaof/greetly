@@ -28,7 +28,7 @@ export async function POST(req: Request) {
     let presentCount = 0;
     let lateCount = 0;
     let absentCount = 0;
-    let studentsContext = [];
+    let studentsContext: string[] = [];
 
     const logsMap = new Map();
     if (logs) {
@@ -84,7 +84,7 @@ ATTENDANCE RULES:
 `;
 
     const sanitizedMessages = messages.map((m: any) => ({
-      ...m,
+      role: m.role,
       content: m.content || (m.parts ? m.parts.map((p: any) => p.text).join("") : "")
     }));
 
@@ -105,6 +105,15 @@ If asked about absentees or latecomers, read the CURRENT DATABASE CONTEXT to ans
     return result.toUIMessageStreamResponse();
   } catch (error: any) {
     console.error("AI Error:", error);
+    
+    // Write error to file for debugging
+    const fs = require('fs');
+    fs.writeFileSync('error_log.txt', JSON.stringify({
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    }, null, 2));
+
     return new Response("Ralat memproses AI: " + (error.message || String(error)), { status: 500 });
   }
 }

@@ -23,6 +23,7 @@ export function CopilotWidget() {
     setMounted(true);
   }, []);
 
+  // @ts-ignore
   const { messages, sendMessage, status } = useChat({
     initialMessages,
     onFinish: () => {

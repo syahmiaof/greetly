@@ -10,7 +10,7 @@ export default function CopilotPage() {
   const [mounted, setMounted] = useState(false);
   const [initialMessages, setInitialMessages] = useState<any[]>([]);
 
-  const { metrics, totalStudents, records } = useAttendance();
+  const { metrics, records } = useAttendance();
   const [absentList, setAbsentList] = useState<any[]>([]);
 
   const presentList = Array.from(new Map(
@@ -51,6 +51,7 @@ export default function CopilotPage() {
     setMounted(true);
   }, []);
 
+  // @ts-ignore
   const { messages, sendMessage, status, setMessages } = useChat({ 
     initialMessages,
     onFinish: () => {
