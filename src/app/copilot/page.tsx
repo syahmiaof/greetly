@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 
 import { useChat } from '@ai-sdk/react';
-import { Bot, Send, User, Activity, FileText, Clock, Cpu, MoreHorizontal, Database, Network, AlertTriangle, Search, Trash2 } from 'lucide-react';
+import { Bot, Send, User, Activity, FileText, Clock, Cpu, MoreHorizontal, Database, Network, AlertTriangle, Search, Trash2, CheckCircle } from 'lucide-react';
 import { useAttendance } from '@/hooks/useAttendance';
 
 export default function CopilotPage() {
@@ -12,6 +12,16 @@ export default function CopilotPage() {
 
   const { metrics, totalStudents, records } = useAttendance();
   const [absentList, setAbsentList] = useState<any[]>([]);
+
+  const presentList = Array.from(new Map(
+    (records || [])
+      .filter(r => new Date(r.created_at).toDateString() === new Date().toDateString())
+      .map(r => [r.student_id, r])
+  ).values()).filter(r => {
+    const d = new Date(r.created_at);
+    const timeVal = d.getHours() + (d.getMinutes() / 60);
+    return timeVal < 8; // Present means scanned before 8 AM
+  });
 
   useEffect(() => {
     const fetchAbsentees = async () => {
@@ -108,6 +118,8 @@ export default function CopilotPage() {
     activeTopic = 'hardware';
   } else if (lastUserContent.includes('late') || lastUserContent.includes('lewat') || lastUserContent.includes('lambat')) {
     activeTopic = 'late';
+  } else if (lastUserContent.includes('hadir') || lastUserContent.includes('present') || lastUserContent.includes('awal')) {
+    activeTopic = 'present';
   }
 
   return (
@@ -270,6 +282,43 @@ export default function CopilotPage() {
                        })}
                     </div>
                     <p className="text-[10px] text-amber-500/60 mt-4 text-center">Peak late times detected between 8:00 AM - 8:30 AM</p>
+                  </div>
+                </div>
+              )}
+
+              {activeTopic === 'present' && (
+                <div className="space-y-6 animate-in slide-in-from-left duration-500">
+                  <div className="flex flex-col items-center justify-center p-6 border border-emerald-500/20 rounded-xl bg-emerald-900/10 relative overflow-hidden">
+                    <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4 relative">
+                      <div className="absolute inset-0 rounded-full border-2 border-emerald-500/50 animate-ping"></div>
+                      <CheckCircle className="text-emerald-400 w-8 h-8" />
+                    </div>
+                    <h3 className="text-sm text-emerald-400 uppercase font-bold tracking-widest text-center">Early Birds</h3>
+                    <p className="text-xs text-slate-400 mt-2">{presentList.length} students arrived before 8:00 AM</p>
+                  </div>
+                  
+                  <div className="border border-white/5 rounded-xl bg-slate-800/30 p-4">
+                    <h3 className="text-xs text-slate-400 uppercase mb-4 tracking-wider">Hall of Fame (Present Today)</h3>
+                    <div className="space-y-3">
+                      {presentList.length > 0 ? (
+                        presentList.slice(0, 5).map((student: any) => (
+                          <div key={student.id} className="flex justify-between items-center p-2 rounded bg-slate-900/50 border border-emerald-500/10">
+                            <div className="flex items-center gap-3">
+                              <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-xs text-emerald-400 font-bold">
+                                {student.student_name.charAt(0)}
+                              </div>
+                              <div className="text-sm text-slate-300 font-medium">{student.student_name}</div>
+                            </div>
+                            <div className="text-[10px] text-slate-500">{student.grade_class}</div>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs text-slate-500 text-center py-4">No early arrivals recorded yet.</p>
+                      )}
+                      {presentList.length > 5 && (
+                        <p className="text-[10px] text-slate-500 text-center pt-2 border-t border-white/5">+ {presentList.length - 5} more students</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
