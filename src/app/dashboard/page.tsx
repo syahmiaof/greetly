@@ -11,11 +11,24 @@ import Link from "next/link";
 import { Bell, Calendar, LogOut, Settings as SettingsIcon, AlertTriangle, Eye, UserX, CheckCircle2 } from 'lucide-react';
 
 function LiveClock() {
+  const [mounted, setMounted] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+
   useEffect(() => {
+    setMounted(true);
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  if (!mounted) {
+    return (
+      <div className="flex flex-col text-left md:text-right">
+        <span className="text-xs md:text-sm font-bold text-transparent tracking-wider">Loading...</span>
+        <span className="text-[10px] md:text-xs text-transparent font-medium font-mono">Loading...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col text-left md:text-right animate-in fade-in duration-300">
       <span className="text-xs md:text-sm font-bold text-white tracking-wider">
