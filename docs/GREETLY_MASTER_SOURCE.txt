@@ -1,0 +1,1015 @@
+MASTER DOCUMENTATION FOR GREETLY (CONSOLIDATED FOR NOTEBOOK LM)
+======================================================
+
+<div align="center">
+  <img src="public/greetly-logo-transparent.png" width="120" alt="Greetly Logo" />
+  <h1>Real-Time Facial Recognition Attendance System (Greetly)</h1>
+</div>
+
+Developed by syahmiaof. **Greetly** is a cloud-integrated, real-time facial recognition student attendance monitoring system. It leverages a modern tech stack (Next.js 15, Tailwind CSS v4, Supabase Auth/Realtime, Python Edge Node) to provide seamless attendance tracking, live dashboard monitoring, hardware telemetry, and an automated CI/CD pipeline for rapid deployments.
+
+---
+
+## 1. System Architecture & CI/CD Pipeline
+
+To ensure high availability, secure data transfer, and automated deployments, Greetly is architected using best-in-class cloud and edge technologies.
+
+### A. Core Workflow Diagram
+
+```mermaid
+graph TD
+    %% Edge Device Layer
+    subgraph Edge["Hardware Edge (Raspberry Pi 3)"]
+        Cam[Camera Module] -->|Live Video Feed| CV[OpenCV & face_recognition]
+        CV -->|Visual Feedback| OLED[SSD1306 OLED]
+        CV -->|Audio Feedback| Buzz[Active-Low Buzzer]
+        CV -->|Ping 3s| Telemetry[Hardware Telemetry]
+    end
+
+    %% Cloud Database Layer
+    subgraph CloudDB["Supabase (PostgreSQL BaaS)"]
+        DB[(PostgreSQL DB)]
+        Storage[Image Buckets]
+        Realtime[WebSockets / Realtime]
+        
+        CV -->|1. Match & Insert Log| DB
+        CV -->|2. Sync Profiles| Storage
+        DB -->|3. Broadcast Changes| Realtime
+    end
+
+    %% Web Dashboard Layer
+    subgraph WebApp["Admin Dashboard (Next.js)"]
+        UI[React UI Components]
+        Hooks[useAttendance Hook]
+        
+        Realtime -->|Listen for Inserts| Hooks
+        Hooks -->|Update State| UI
+    end
+    
+    %% User Action
+    Admin((System Admin)) -->|Views| UI
+```
+
+### B. CI/CD Pipeline (Deployment Architecture)
+
+We utilize a zero-downtime deployment strategy. Any code pushed to the `main` branch automatically triggers a build process.
+
+```mermaid
+flowchart LR
+    Dev([Developer / Local]) -->|git push origin main| GitHub[(GitHub Repository)]
+    GitHub -->|Webhook Trigger| Vercel[Vercel Edge Network]
+    
+    subgraph Vercel Pipeline
+        Vercel --> Build[npm run build]
+        Build --> TypeCheck[npx tsc]
+        TypeCheck --> Deploy[Serverless Deployment]
+    end
+    
+    Deploy --> CF[Cloudflare DNS]
+    CF -->|greetly.syahmiaof.my| EndUser([End Users])
+```
+
+- **GitHub:** Acts as the single source of truth for version control.
+- **Vercel:** PaaS platform that automatically intercepts GitHub webhooks, runs the Next.js build, and deploys the application to an edge network.
+- **Cloudflare:** Manages DNS routing (`greetly.syahmiaof.my`) and provides DDoS protection, while Vercel handles the SSL termination.
+
+---
+
+## 2. Sequence Diagram (Data & Hardware Flow)
+
+This diagram explains exactly how the hardware modules (Camera, OLED, Buzzer) interact with the Raspberry Pi 3, and how the entire system syncs bi-directionally with your Web Dashboard.
+
+```mermaid
+sequenceDiagram
+    participant Hardware as =ô+/=ô Hardware (Cam/OLED/Buzzer)
+    participant Python as =ìô Raspberry Pi 3 (Python)
+    participant Supabase as Gÿün+Å Supabase (Cloud Database)
+    participant NextJS as =Æ+ Web Dashboard (Next.js)
+
+    Note over Hardware, Python: 1. Hardware Polling & Adjustment
+    NextJS->>Supabase: Admin changes Settings (e.g., Cooldown)
+    Supabase->>Supabase: Updates `hardware_config` table
+    Python->>Supabase: Background Thread polls config every 3 seconds
+    Supabase-->>Python: Returns new settings (e.g., cooldown=120)
+    Python->>Python: Applies settings to local variables instantly!
+
+    Note over Hardware, Python: 2. Face Detection Phase
+    Hardware->>Python: Camera sends raw video frames
+    Python->>Python: OpenCV detects face & compares to trained profiles
+    
+    alt Face Recognized
+        Python->>Python: Identify as "Syahmi Aof"
+        
+        Note over Hardware, Python: 3. Hardware Reaction
+        Python->>Hardware: Send I2C Data to OLED -> "HADIR: Syahmi Aof"
+        Python->>Hardware: Trigger Open-Drain GPIO -> Buzzer "Beep!"
+        
+        Note over Python, Supabase: 4. Cloud Sync Layer
+        Python->>Supabase: Query ID: SELECT id FROM students WHERE name='Syahmi Aof'
+        Supabase-->>Python: Returns UUID
+        Python->>Supabase: INSERT log (student_id, status: "Present")
+        Supabase-->>Python: Success (Data saved in cloud)
+    end
+
+    Note over Supabase, NextJS: 5. Real-time Frontend Layer
+    Supabase->>NextJS: Webhook / Realtime Channel triggers "INSERT" event
+    NextJS->>NextJS: useAttendance.ts hook detects new record
+    NextJS->>NextJS: React deduplicates & Updates Live Dashboard UI
+```
+
+---
+
+
+
+### 3. Registration vs. Attendance Workflow (Perbandingan)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    
+    box rgb(30, 41, 59) Registration Mode (Daftar Pelajar Baru)
+    participant Admin (Web)
+    participant Supabase DB
+    participant Raspberry Pi
+    end
+
+    Note over Admin (Web): Module: Students -> Remote Registration
+    Admin (Web)->>Supabase DB: 1. Masukkan nama & set status = 'pending_camera'<br/>2. Paksa Kiosk = ON (Auto)
+    Supabase DB-->>Raspberry Pi: Realtime Trigger
+    Raspberry Pi->>Raspberry Pi: Kesan ada pendaftaran tertunggak
+    Raspberry Pi->>Raspberry Pi: Tangkap 20 muka (Training)
+    Raspberry Pi->>Supabase DB: Update status pelajar = 'active'
+    Supabase DB-->>Admin (Web): Pop-up Success di Web UI!
+    
+    box rgb(6, 78, 59) Attendance Mode (Imbas Kehadiran Harian)
+    participant Student
+    participant Pi Camera
+    participant Dashboard
+    end
+
+    Note over Pi Camera: Module: Hardware -> Kiosk Running
+    Student->>Pi Camera: Berdiri depan kamera
+    Pi Camera->>Pi Camera: Pengesanan Muka AI
+    Pi Camera->>Supabase DB: Hantar data kehadiran (Present/Late) & Semak Cooldown
+    Supabase DB-->>Dashboard: Loceng Notifikasi berbunyi & Data masuk table!
+```
+
+## 4. Hardware Setup
+
+The physical attendance kiosk runs on a Raspberry Pi 3 with the following peripherals:
+
+- **Raspberry Pi Camera:** Captures the live video feed. Enabled via `raspi-config`.
+- **SSD1306 OLED Display:** Connected via I2C (`SDA`, `SCL`). Displays system status, time, and immediate feedback.
+- **Active-Low Buzzer:** Connected to **BCM 4** (GPIO 4). Provides audio feedback (a short beep) when a face is successfully recognized. 
+  > [!CAUTION]
+  > **CRITICAL HARDWARE WARNING**
+  > 1. The Active-Low Buzzer is connected directly between the Pi's 5V pin and BCM 4 (GPIO 4).
+  > 2. Because of this 5V to 3.3V mismatch, you CANNOT use standard GPIO.OUT with GPIO.HIGH to turn the buzzer off. Doing so causes a 1.7V drop across the buzzer, making it scream continuously.
+  > 3. The ONLY way to silence the buzzer is to use the "High-Z Open-Drain Hack": you MUST set the pin to `GPIO.IN` (with `pull_up_down=GPIO.PUD_OFF`) to float the pin and stop all current from flowing to Ground. 
+  > 4. To sound the buzzer, you set the pin to `GPIO.OUT` with `initial=GPIO.LOW` to complete the circuit to Ground.
+  > 5. NEVER remove this hack from `pi_scripts/recognize_attendance.py`, or the user will go deaf.
+
+---
+
+## 5. Database Schema (Supabase)
+
+### `students`
+Stores student profiles and facial encoding references.
+- `id`: `uuid` (Primary Key)
+- `matric_no`: `varchar` (Unique identifier)
+- `name`: `varchar`
+- `image_url`: `text`
+
+### `attendance_logs`
+Stores the actual attendance punches.
+- `id`: `uuid` (Primary Key)
+- `student_id`: `uuid` (Foreign Key -> `students.id`)
+- `status`: `varchar`
+- `timestamp`: `timestamptz` (Default: `now()`)
+
+### `hardware_telemetry`
+Used by the Pi to report its health status (Ping every 3 seconds).
+- `id`: `integer` (Primary Key)
+- `cpu_temp`: `numeric`
+- `cpu_usage`: `numeric`
+- `last_ping`: `timestamptz`
+
+---
+
+## 5B. Next-Gen Dashboard Features
+
+- **Dynamic Theme Switcher:** Choose between Deep Tech, Emerald Zamrud, and Amethyst Galaxy.
+- **Secure Auth Middleware:** Route protection via Supabase Server-Side Rendering (SSR).
+- **Live Hardware Telemetry:** Ping tracking and remote cooling/shutdown commands for edge devices.
+
+## 6. Running the Web Dashboard Locally
+
+1. Create a `.env.local` file and add your Supabase keys:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
+2. Install dependencies and run:
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+---
+
+## 7. Running the Pi Script (Hardware Node)
+
+The Python script (`pi_scripts/recognize_attendance.py`) handles face detection and Supabase communication.
+
+1. Install Python requirements:
+   ```bash
+   pip install -r requirements.txt
+   ```
+2. Export your Supabase credentials:
+   ```bash
+   export SUPABASE_URL="your_supabase_url"
+   export SUPABASE_KEY="your_supabase_service_role_key"
+   ```
+
+### Running as a Systemd Service (Kiosk Mode)
+To ensure the script runs automatically on boot and recovers from crashes:
+1. Create `sudo nano /etc/systemd/system/kiosk.service`
+2. Enable and start:
+   ```bash
+   sudo systemctl enable kiosk.service
+   sudo systemctl start kiosk.service
+   ```
+
+---
+
+## 8. Key Engineering Decisions
+
+### 1. Auto-Delete Profiles Sync
+If a student is deleted from the web dashboard, their corresponding facial encodings and reference images are automatically purged from the Raspberry Pi 3's local cache via realtime listener triggers. This prevents the edge device from wasting processing power trying to match deleted faces.
+
+### 2. The 'Sudah Hadir' (Already Present) Logic & Cooldown
+To prevent rapid-fire duplicate logs, we introduced a **Cooldown Mechanism**. 
+- When a student's face is recognized, their ID is stored locally with a timestamp.
+- If detected again within the cooldown window, the UI/OLED displays **"Sudah Hadir"**.
+- It skips the database insert and bypasses the buzzer beep, providing silent visual feedback without generating redundant data.
+
+### 3. Local Storage Admin Profile Sync
+The admin settings page uses a highly optimized `useAdminProfile` React Hook integrated with browser `localStorage`. When the admin updates their Name, Role, or uploads an Avatar (converted to Base64), a CustomEvent (`profile-updated`) is dispatched, instantly syncing the UI across the entire dashboard without requiring a page refresh or backend database roundtrip.
+
+---
+
+## 9. Pitching & Value Proposition
+
+Greetly solves critical operational and administrative bottlenecks in modern educational institutions. Below are 10 core value propositions tailored for potential investors and stakeholders:
+
+### GÅ¦n+Å 1. Recovering Lost Instruction Time (General)
+- **Problem:** Manual attendance taking consumes approximately 10-15 minutes of precious lecture time per class.
+- **Solution:** Greetly's zero-touch biometric scanning processes a student in under 1.5 seconds, recovering up to **90% of lost instruction time**, allowing educators to focus purely on teaching.
+
+### =Ä» 2. Eliminating Fraudulent Records (General)
+- **Problem:** Buddy punching and forged manual signatures lead to inaccurate truancy records.
+- **Solution:** Utilizing precise facial encodings ensures 100% true identity verification, reducing truancy mapping errors by **100%** compared to traditional paper or ID card systems.
+
+### =ôë 3. Drastic Reduction in Administrative Workload (General)
+- **Problem:** Administrators spend countless hours manually keying in paper attendance sheets into central school databases.
+- **Solution:** GreetlyGÇÖs real-time Supabase cloud sync eliminates manual data entry completely, reducing the administrative attendance workload by **80%** and freeing staff for higher-value tasks.
+
+### =æün+Å 4. Instant Visibility for Stakeholders (General)
+- **Problem:** Parents and school management often only discover absenteeism patterns at the end of the semester.
+- **Solution:** The Next.js live dashboard provides instant, real-time visibility. Stakeholders can immediately intervene when a student is flagged as absent for consecutive days.
+
+### =ÜÇ 5. Blazing Fast Edge Computing (Technical)
+- **Problem:** Sending raw video feeds to the cloud for processing consumes massive internet bandwidth, causing severe lag and high server costs.
+- **Solution:** Greetly utilizes Edge Computing on the Raspberry Pi 3. OpenCV processes the video locally, and only lightweight text data (a UUID) is transmitted to the cloud, making it blazing fast even on unstable 3G networks.
+
+### =öö 6. Tri-Feedback Hardware Loop (Technical)
+- **Problem:** Users are often unsure if a biometric system successfully registered their presence, causing traffic bottlenecks as they scan multiple times.
+- **Solution:** Greetly features a proprietary tri-feedback system: a bounding box on the screen, a custom OLED name display, and an active-low buzzer beep. This guarantees immediate, satisfying confirmation for the user.
+
+### =¢ín+Å 7. Anti-Spam "Sudah Hadir" Cooldown Engine (Technical)
+- **Problem:** Traditional facial systems spam the database with duplicate logs if a person lingers in front of the camera.
+- **Solution:** We engineered a custom local caching cooldown loop. If a student is detected twice within the configured window, it provides visual feedback ("Sudah Hadir") without triggering a database writeGÇösaving cloud storage costs and preventing API rate limits.
+
+### =öä 8. Zero-Downtime OTA Deployment (Technical)
+- **Problem:** Updating software on IoT devices scattered across a campus usually requires manual USB flashing or SSH, leading to high maintenance costs.
+- **Solution:** Greetly is hooked to a Vercel CI/CD pipeline, and the Supabase `hardware_config` table acts as an Over-The-Air (OTA) remote control. Admins can lock gates or tweak scanner settings globally from a single browser tab.
+
+### =öÆ 9. Strict Data Privacy & Dynamic Sync (Technical)
+- **Problem:** Deleted students' biometric data often lingers on legacy hardware devices, violating PDPA (Personal Data Protection Act) laws.
+- **Solution:** Our Supabase Realtime triggers ensure that deleting a student on the web dashboard instantly purges their facial encodings from the Raspberry Pi's local memory, maintaining strict compliance.
+
+### =Æ¦ 10. Cost-Effective Enterprise Scalability (General)
+- **Problem:** Enterprise attendance systems require proprietary, expensive hardware and hefty on-premise server licensing.
+- **Solution:** By combining affordable off-the-shelf components (Raspberry Pi 3, SSD1306) with Serverless PaaS architectures (Supabase/Vercel), Greetly achieves enterprise-grade performance at a fraction of the traditional cost, making it highly scalable for any institution.
+
+---
+
+## 10. Troubleshooting
+
+### Temporary Failure in Name Resolution (Dashboard Shows Offline / Time Stuck)
+**Symptoms:** 
+- The Raspberry Pi turns on, the OLED works, but the web dashboard shows the camera as "Offline" and CPU load as 0%.
+- Checking Pi logs shows: `Exception: [Errno -3] Temporary failure in name resolution`.
+- The Pi's system clock is stuck at the time it was last shut down.
+
+**Cause:** 
+When the Pi connects to a Windows Mobile Hotspot, the default DNS configuration may fail to route domain names properly. This breaks the Pi's ability to reach `supabase.co` and `pool.ntp.org` (causing the system clock to freeze).
+
+**Permanent Solution:**
+We forced the `NetworkManager` to permanently use Google's DNS for the hotspot profile. To do this again if it resets, run the following on the Pi via SSH:
+```bash
+sudo nmcli connection modify preconfigured ipv4.dns "8.8.8.8 8.8.4.4"
+sudo nmcli connection modify preconfigured ipv4.ignore-auto-dns yes
+sudo nmcli connection up preconfigured
+```
+
+---
+
+## 11. Marketing & AI Video Generation
+
+To create the 3D 'exploded-view' animation of the Greetly hardware for the landing page or investor pitch videos, use **Luma Dream Machine** or **Runway Gen-3** with the following prompt:
+
+> *"Cinematic 360-degree orbit product reveal. At the peak of the rotation, the hardware begins an elegant exploded-view breakdown. The outer casing detaches and floats outward, revealing the internal motherboard, camera module, and wiring. Soft volumetric lighting, highly detailed."*
+
+### Steps for buttery-smooth landing page animation:
+1. Upload the base 3D render of the Greetly hardware as an image reference.
+2. Generate a 5-second video using the prompt above.
+3. Convert the resulting .mp4 into an image sequence.
+4. Extract **150 to 250 frames** to ensure a high frame-rate scroll experience.
+5. Replace the files in public/greetly.web/ezgif-6d4320075cf41310-jpg with the new frames and update the rameCount in index.html accordingly.
+
+
+
+======================================================
+
+# Greetly: Senibina dan Implementasi AI
+
+Dokumen ini memperincikan pelaksanaan kecerdasan buatan (AI) sedia ada dalam sistem **Greetly** (IoT Facial Recognition Attendance System), peranan *AI Agents* dalam proses pembangunannya, aliran kerja AI, serta peta jalan (roadmap) cadangan integrasi AI masa hadapan.
+
+## 1. Senibina AI Sedia Ada (Current AI Implementation)
+
+Sistem Greetly menggunakan pendekatan **Edge AI** di mana pemprosesan komputer penglihatan (computer vision) berlaku terus pada peranti (Raspberry Pi 3) untuk mengurangkan kependaman (latency) dan kebergantungan kepada sambungan internet berterusan. Tiga algoritma utama yang digunakan adalah:
+
+- **Haar Cascades (Face Detection):**
+  Digunakan untuk mengesan kehadiran wajah manusia dalam suapan video (video stream) secara masa nyata (real-time). Ia adalah algoritma *machine learning* berasaskan *classifier* yang cekap memproses dan mengenalpasti struktur asas wajah dengan membandingkan piksel terang dan gelap menggunakan *Haar features*.
+
+- **LBPH - Local Binary Patterns Histograms (Facial Recognition):**
+  Algoritma pengecaman wajah yang stabil terhadap perubahan pencahayaan. Ia mengekstrak tekstur dan ciri tempatan (local features) wajah dengan membandingkan piksel tengah dengan kawasan sekitarnya. Corak ini kemudiannya disimpan sebagai histogram untuk dipadankan dengan pangkalan data pelajar semasa mengambil kedatangan.
+
+- **Laplacian Variance (Anti-Spoofing / Liveness Detection):**
+  Teknik pengesanan *liveness* asas untuk mengelakkan penipuan (spoofing) menggunakan gambar pegun atau skrin telefon. Ia berfungsi dengan mengira varians (variance) yang dihasilkan oleh *Laplacian filter* bagi menentukan tahap fokus atau kekaburan (blurriness). Objek 2D atau gambar yang dipaparkan pada skrin biasanya memberikan nilai varians yang berbeza (lebih kabur) berbanding wajah fizikal sebenar.
+
+## 2. Peranan AI Agent dalam Pembangunan (Development AI)
+
+Sepanjang fasa pembangunan, **Antigravity AI Agents** telah memainkan peranan kritikal sebagai *AI Solutions Architect* dan pembantu pengekodan:
+
+- **Seni Bina Sistem (System Architecture):** Ejen AI membantu merekabentuk topologi sistem menyeluruh yang menghubungkan perkakasan (Raspberry Pi), *backend/database* (Supabase untuk DB/Auth), dan papan pemuka web (Next.js Dashboard).
+- **Penyelesaian Masalah Perkakasan Kompeks (Complex Hardware Debugging):** Menyelesaikan ralat isyarat GPIO, contohnya menganalisis isu *High-Z Open Drain* bagi komponen pembaz (buzzer) untuk memastikan tindak balas bunyi (audio feedback) yang konsisten.
+- **Automasi Pelaksanaan (Deployment Automation):** Membantu menulis dan menstrukturkan skrip *Remote OTA (Over-The-Air) SFTP* untuk memudahkan pemindahan kod dari mesin pembangunan ke peranti IoT dari jarak jauh, mempercepatkan kitaran ujian.
+
+## 3. Aliran Kerja AI (AI Workflow)
+
+Carta alir di bawah menunjukkan bagaimana data diproses bermula daripada tangkapan kamera sehinggalah ia disegerakkan ke pangkalan data awan.
+
+```mermaid
+flowchart TD
+    A([Kamera / Camera Stream]) --> B(Haar Cascades: Face Detection)
+    B -->|Wajah Dikesan| C{Laplacian Variance: Liveness Check}
+    C -->|Spoof / Blur| D[Abaikan / Amaran Bunyi]
+    C -->|Wajah Sebenar| E(LBPH: Facial Recognition)
+    E -->|Tidak Dikenali| F[Rekod sebagai Pelawat / Unknown]
+    E -->|Padanan Ditemui| G[Jana Log Kehadiran]
+    G --> H{Cek Rangkaian / Network Check}
+    H -->|Offline| I[(Offline Queue / Local Storage)]
+    I -.->|Apabila Online| J
+    H -->|Online| J[(Supabase Sync)]
+    J --> K([Web Dashboard / Next.js])
+```
+
+## 4. Cadangan Masa Depan: AI Automation & AI Agents (Future Roadmap)
+
+Bagi pembentangan projek tahun akhir (FYP), cadangan naik taraf berikut boleh diketengahkan untuk menunjukkan potensi penuh sistem pintar Greetly:
+
+- **AI WhatsApp Automation:**
+  Mengintegrasikan agen AI yang memantau jadual kehadiran harian. Apabila pelajar dikesan ponteng atau lewat secara konsisten, ejen ini akan mengarang dan menghantar mesej WhatsApp peribadi (secara automatik) kepada ibu bapa/penjaga untuk memaklumkan status kehadiran dengan nada empati yang sesuai.
+
+- **Predictive Analytics (Machine Learning):**
+  Menggunakan model pembelajaran mesin (ML) pada data Supabase untuk mengenalpasti corak kehadiran. Sistem ini boleh membuat ramalan (predict) kebarangkalian berlakunya ponteng tegar berdasarkan trend, lokasi, cuaca, atau hari tertentu dalam minggu, sekaligus membolehkan guru kaunseling bertindak lebih awal.
+
+- **Natural Language Dashboard Assistant (LLM Chatbot):**
+  Menyediakan pembantu AI berasaskan *Large Language Model (LLM)* dalam Dashboard Next.js. Guru dan pentadbir boleh bertanya soalan harian dalam bahasa biasa seperti *"Siapa lambat hari ini?"* atau *"Berapa peratus kehadiran kelas 5 Sains?"*. Ejen AI ini kemudiannya akan menjana pertanyaan SQL (query) ke pangkalan data Supabase dan memberikan jawapan secara pantas dan semulajadi.
+
+
+======================================================
+
+
+# Asas Kecerdasan Buatan (AI) Untuk Projek Greetly
+
+Sebagai pembina sistem ini, sangat penting untuk anda faham perbezaan jenis-jenis AI supaya mudah untuk menjawab soalan panel penilai atau juri.
+
+Dalam dunia teknologi, "AI" adalah satu payung besar. Di bawahnya, terdapat pelbagai jenis AI yang melakukan tugas yang berbeza-beza. Berikut adalah perbezaan antara **AI dalam projek Greetly (Raspberry Pi)** berbanding **AI Agent/LLM** dan **AI Automation**.
+
+---
+
+## 1. AI dalam Python Script kita (Computer Vision / Edge AI)
+Ini adalah AI yang sedang beroperasi di dalam Raspberry Pi anda.
+
+* **Nama Saintifik:** *Computer Vision*, menggunakan algoritma **LBPH** (Local Binary Patterns Histograms) & Haar Cascades.
+* **Tugas Utama:** Ia adalah AI yang "Melihat".
+* **Cara Berfungsi:** Ia berfungsi ibarat pengawal keselamatan yang lurus bendul. Bila anda daftar muka, AI ni tak simpan gambar anda, sebaliknya ia menukar muka anda kepada **titik-titik matematik dan nombor (corak tekstur wajah)**. Bila anda imbas muka esok harinya, AI ni akan kira peratusan persamaan (Match %) corak tersebut.
+* **Kenapa kita guna AI jenis ni?:** Ia dipanggil **Edge AI** (AI yang duduk di hujung peranti). Ia sangat ringan dan sangat pantas. Ia membolehkan Raspberry Pi (komputer kecil yang tak begitu kuat) untuk memproses AI ini **tanpa memerlukan sambungan Internet**. Ia tak perlukan server gergasi.
+* **Limitasi:** Ia hanya pandai mengecam muka. Kalau anda tanya soalan matematik pada skrip ni, ia takkan faham.
+
+---
+
+## 2. AI LLM & AI Agent (Generative AI)
+Ini adalah AI seperti **SAYA**, yang sedang bersembang dan menolong anda menaip kod sekarang (berasaskan Large Language Model).
+
+* **Nama Saintifik:** *Generative AI / Large Language Models (LLM)*.
+* **Tugas Utama:** AI yang "Membaca, Berfikir, Berkomunikasi, dan Bertindak".
+* **Cara Berfungsi:** LLM dilatih menggunakan berbilion teks dari seluruh internet. Saya faham bahasa manusia, saya boleh menulis kod pengaturcaraan, dan sebagai "AI Agent", saya diberi "tangan" untuk menjalankan arahan di terminal komputer anda, membina fail, dan mengubah suai sistem secara bebas. Ibarat seorang rakan sekerja (pembantu *developer*).
+* **Kenapa LLM tak dimasukkan dalam Raspberry Pi?:** AI jenis ini terlalu berat dan gergasi. Ia memerlukan superkomputer raksasa di pusat data awan (Cloud Data Center) bernilai jutaan ringgit (menggunakan ratusan cip GPU NVIDIA). Raspberry Pi anda akan terbakar kalau cuba menjalankan AI sebesar ini secara lokal!
+
+---
+
+## 3. AI Automation
+Ini merujuk kepada sistem automasi pintar yang menggabungkan AI untuk membuat keputusan.
+
+* **Nama Saintifik:** *Intelligent Process Automation (IPA)*.
+* **Tugas Utama:** AI yang "Mengurus dan Melaksana Tugas Berantai".
+* **Contoh dalam Dunia Sebenar:** Bayangkan dalam projek Greetly, sebaik sahaja AI Pengecaman Wajah di Raspberry Pi mengesahkan pelajar hadir lewat, **AI Automation** secara automatik menyemak rekod pelajar di *database*, kemudian secara automatik merangka ayat teguran menggunakan *LLM*, dan secara automatik menghantar WhatsApp kepada ibubapa pelajar tersebut tanpa manusia perlu menekan apa-apa butang. Ia adalah "gam" yang mencantumkan pelbagai jenis AI untuk bekerja sendiri.
+
+---
+
+### Kesimpulan Mudah (Cara Jawab Panel):
+
+> **"Projek Greetly menggunakan Computer Vision (LBPH) berkonsepkan Edge AI. Ia berbeza dengan ChatGPT (LLM). ChatGPT adalah AI yang pandai berborak tapi memerlukan superkomputer di awan (Cloud), manakala AI dalam Greetly ini telah dioptimumkan secara ekstrim supaya ia cukup ringan untuk diproses di dalam Raspberry Pi secara offline, menjadikannya pantas, selamat, dan tidak bergantung kepada internet untuk berfungsi."**
+
+
+
+======================================================
+
+# Greetly: FYP Pitch & Q&A Defense Guide
+
+This document prepares you for your Final Year Project (FYP) presentation. It contains highly probable and challenging questions from the panel, along with professional answers, system architecture diagrams to illustrate your points, and presentation tips to ace your defense.
+
+---
+
+## 1. "You say your system has AI, where is the AI? Show me."
+
+**Answer:**
+"The Artificial Intelligence in Greetly is deployed on the 'Edge'—specifically on the Raspberry Pi 3. Rather than sending heavy video feeds to the cloud (which is slow and expensive), the AI model runs locally. We use OpenCV combined with a facial recognition model (e.g., Haar Cascades or Deep Learning-based embeddings) to detect a face, extract its unique features, and match it against our localized dataset. Once the AI verifies the identity, only a lightweight JSON payload is sent to our Supabase backend to record the attendance."
+
+**Visual Context:**
+```mermaid
+flowchart LR
+    subgraph Edge[Raspberry Pi 3 - Edge AI]
+        C[Camera Module] --> F[Face Detection]
+        F --> E[Feature Extraction]
+        E --> M{Recognition Model}
+    end
+    subgraph Cloud[Cloud Infrastructure]
+        S[(Supabase Database)]
+    end
+    M -- Match Found --> S
+```
+
+> [!TIP]
+> **Actionable Tip:** Point directly to the Raspberry Pi during this answer. Mention "Edge AI" or "Edge Computing"—panels love industry-standard buzzwords. If possible, show a terminal window outputting the recognition confidence score.
+
+---
+
+## 2. "Where are the security features of this system? Can the data be hacked or leaked?"
+
+**Answer:**
+"Security is integrated at multiple layers of Greetly. 
+1. **Transit:** All communication between the Raspberry Pi, the Next.js Dashboard, and Supabase happens over encrypted HTTPS and WSS (WebSockets) protocols.
+2. **Database Level:** We utilize Supabase's Row Level Security (RLS). This means even if an API key is exposed, attackers cannot read or alter the attendance data unless they are authenticated and authorized as an Admin/Lecturer.
+3. **Authentication:** Dashboard access is secured via Supabase Auth using secure JWTs (JSON Web Tokens). Passwords are never stored in plain text."
+
+**Visual Context:**
+```mermaid
+sequenceDiagram
+    participant Pi as Raspberry Pi
+    participant Dashboard as Next.js Dashboard
+    participant Supabase as Supabase (PostgreSQL)
+
+    Pi->>Supabase: 🔒 HTTPS POST (Log Attendance)
+    Note over Supabase: RLS Policy Check (Is Service Role?)
+    Supabase-->>Pi: 201 Created
+    
+    Dashboard->>Supabase: 🔒 Auth Request (JWT)
+    Supabase-->>Dashboard: Session Token
+    Dashboard->>Supabase: 🔒 WSS (Subscribe to Realtime changes)
+    Note over Supabase: RLS Policy Check (Is Admin?)
+```
+
+> [!TIP]
+> **Actionable Tip:** Have the Supabase Dashboard open in a browser tab. If they press hard on security, physically show them the RLS policies (e.g., `CREATE POLICY "Enable read access for admins only"`).
+
+---
+
+## 3. "What happens if a student gets into an accident and their face is injured/bandaged? How do they take attendance?"
+
+**Answer:**
+"Facial recognition is our primary, frictionless method, but it is not the only method. Technology should assist, not block. For edge cases where a student's face is heavily bandaged, obscured, or if there is a hardware failure, Greetly features a manual fallback mechanism. The Lecturer or Admin can log into the Next.js Dashboard and manually mark the student's attendance for that specific session."
+
+**Visual Context:**
+```mermaid
+stateDiagram-v2
+    [*] --> StudentArrives
+    StudentArrives --> FacialScan
+    FacialScan --> FaceRecognized: Success
+    FacialScan --> FaceObscured: Injured/Bandaged/Masked
+    FaceRecognized --> LogAttendance
+    FaceObscured --> LecturerDashboard
+    LecturerDashboard --> ManualOverride
+    ManualOverride --> LogAttendance
+    LogAttendance --> [*]
+```
+
+> [!IMPORTANT]
+> **Actionable Tip:** Emphasize that enterprise systems always have fallback protocols. This shows you are thinking practically as a software engineer, not just relying 100% on a "perfect" AI scenario.
+
+---
+
+## 4. "Why use a Raspberry Pi? Why not just use a smartphone or an Android app?"
+
+**Answer:**
+"We chose a Raspberry Pi because this system is designed as a dedicated, fixed IoT (Internet of Things) kiosk. 
+1. **Dedicated Hardware:** A smartphone can be easily stolen, moved, or interrupted by personal notifications. A Raspberry Pi can be securely mounted at a classroom entrance.
+2. **Extensibility:** The Pi has GPIO (General Purpose Input/Output) pins. In the future, Greetly could be connected to an electronic door lock (to only open for recognized students) or LED indicators, which is much harder to achieve reliably with a standard Android phone."
+
+**Visual Context:**
+```mermaid
+mindmap
+  root((Raspberry Pi vs Phone))
+    Raspberry Pi
+      Fixed Kiosk Installation
+      GPIO for Door Locks
+      Dedicated OS (No background apps)
+      Cheaper at scale
+    Android Phone
+      Battery degradation (if plugged in 24/7)
+      Prone to theft
+      Difficult hardware interfacing
+```
+
+> [!TIP]
+> **Actionable Tip:** Mentioning the GPIO pins for future electronic door locks is a great way to show system extensibility. Evaluators love seeing a roadmap for future development.
+
+---
+
+## 5. "What if the internet goes down? Does the whole system crash?"
+
+**Answer:**
+"No, the system is designed with offline tolerance. If the classroom loses WiFi, the Raspberry Pi will continue to recognize faces and will store the attendance logs locally in a temporary SQLite database or CSV queue. We have a background script that pings the network; once the internet connection to Supabase is restored, the Pi automatically flushes the queued records to the cloud database. No data is lost."
+
+**Visual Context:**
+```mermaid
+flowchart TD
+    A[Face Recognized] --> B{Internet Connection?}
+    B -- Yes --> C[Push to Supabase via API]
+    B -- No --> D[(Save to Local Queue / SQLite)]
+    D --> E[Background Network Watcher]
+    E --> F{Internet Restored?}
+    F -- Yes --> C
+    F -- No --> D
+```
+
+> [!WARNING]
+> **Actionable Tip:** If you haven't coded this offline-queue feature yet, phrase it as: *"The architecture allows for offline tolerance, which is our immediate next phase of development..."* Be honest about what is fully implemented versus what is designed.
+
+---
+
+## 6. "How do you handle spoofing? What if a student holds up a photo of their friend to the camera?"
+
+**Answer:**
+"Spoofing is a known challenge in facial recognition. We combat this by implementing basic 'Liveness Detection' on the edge. Using OpenCV, we can require the user to perform a micro-expression, such as blinking. The system looks for the Eye Aspect Ratio (EAR) to change before validating the scan. A static printed photo will not blink, causing the scan to fail."
+
+**Visual Context:**
+```mermaid
+flowchart LR
+    S[Scan Initiated] --> D[Face Detected]
+    D --> L{Liveness Check: Did Eyes Blink?}
+    L -- No (Photo) --> R[Reject Scan]
+    L -- Yes (Human) --> E[Extract Embeddings]
+    E --> M[Match & Log]
+```
+
+> [!TIP]
+> **Actionable Tip:** Bring a printed photo of yourself to the presentation. Offer to let the panel test it on the camera. Showing a failed spoof attempt live is an incredible "wow" factor.
+
+---
+
+## 7. "How scalable is this? What if 1,000 students try to scan at 8:00 AM across the university?"
+
+**Answer:**
+"Because we use Edge AI, the heavy lifting (video processing) is distributed across the Raspberry Pis in every classroom. The central server is not processing 1,000 video streams. It is only receiving lightweight HTTP POST requests containing an ID and a timestamp. Our backend is Supabase, which runs on a highly scalable PostgreSQL database capable of handling tens of thousands of concurrent writes using connection pooling (PgBouncer). Therefore, the system is highly scalable."
+
+**Visual Context:**
+```mermaid
+flowchart TD
+    subgraph Classrooms
+        P1[Pi: Room 101]
+        P2[Pi: Room 102]
+        P3[Pi: Room 103]
+    end
+    subgraph Cloud
+        SB[Supabase Connection Pooling]
+        DB[(PostgreSQL)]
+    end
+    P1 -- JSON Payload --> SB
+    P2 -- JSON Payload --> SB
+    P3 -- JSON Payload --> SB
+    SB --> DB
+```
+
+> [!TIP]
+> **Actionable Tip:** Use the term "Distributed Computing" or "Offloading Computation to the Edge." It shows a deep understanding of system architecture and cloud resource management.
+
+
+======================================================
+
+
+# Analisis Pesaing & Kelebihan Greetly (Competitor Analysis)
+
+Berdasarkan kajian pasaran terkini di peringkat global dan Malaysia, teknologi pengecaman wajah (*Facial Recognition*) untuk tujuan kedatangan (*attendance*) sedang berkembang pesat. Namun, pasaran ini didominasi oleh pemain-pemain tradisional. 
+
+Berikut adalah analisis pesaing dan bagaimana **Greetly** mampu menumpaskan mereka.
+
+---
+
+## 1. Pesaing Global & Tempatan
+
+### Pesaing Global (Gergasi Perkakasan / Hardware Giants)
+* **Contoh Jenama:** ZKTeco, Hikvision, Dahua.
+* **Model Bisnes:** Menjual peranti biometrik fizikal (mesin cap jari/muka) yang dipasang di dinding.
+* **Kelemahan Mereka:** 
+  - Harga yang amat mahal (RM 2,000 - RM 5,000 setiap unit).
+  - Sistem perisian (*software*) yang sangat lapuk dan "*clunky*". Mereka kebanyakannya menggunakan perisian lama berasaskan Windows, lambat, dan tidak mempunyai paparan papan pemuka (*Dashboard*) web moden dan pantas seperti Next.js.
+  - Peranti mereka tertutup (*proprietary*), susah untuk diintegrasikan (API) ke sistem sedia ada sekolah/syarikat.
+
+### Pesaing Tempatan (Syarikat HR Cloud Malaysia)
+* **Contoh Jenama:** FingerTec, Info-Tech, TimeTec, Kakitangan.com.
+* **Model Bisnes:** Menjual perisian HR (SaaS) dan bergabung dengan peranti ZKTeco atau menggunakan Aplikasi Telefon Pintar.
+* **Kelemahan Mereka:**
+  - Untuk kedatangan berasaskan muka, kebanyakan mereka menggunakan Aplikasi Telefon Pintar (pekerja *selfie* di phone masing-masing). **Ini sangat tidak sesuai untuk pelajar sekolah** kerana pelajar dilarang membawa telefon bimbit!
+  - Pakej langganan yang mahal untuk sekolah.
+  - Masih bergantung pada mesin pihak ketiga (ZKTeco) yang mahal.
+
+---
+
+## 2. Kelebihan Daya Saing Greetly (The Greetly Advantage)
+
+Kenapa Greetly lebih bagus dan boleh menang tender?
+
+1. **Kos Sangat Rendah (Ultra Low-Cost Edge AI):**
+   - Pesaing menjual mesin RM 2,500+. 
+   - Greetly dibina di atas **Raspberry Pi 3** (~RM 350 kos perkakasan). Ini bermaksud sekolah boleh pasang Greetly di *setiap kelas*, bukannya berebut satu mesin di pagar sekolah!
+2. **Kelajuan Paparan Masa Nyata (Realtime WebSockets):**
+   - Menggunakan teknologi **Supabase Realtime**, apabila pelajar imbas muka di peranti, nama mereka akan "pop-up" di skrin *Web Dashboard* guru besar dalam masa 0.1 saat. Pesaing selalunya perlukan sistem *refresh* secara manual atau menunggu "*batch sync*".
+3. **Kalis Internet Putus (Offline-First Architecture):**
+   - Algoritma AI (LBPH) memproses imbasan wajah **di dalam peranti itu sendiri (Edge AI)**, bukan menghantar gambar ke pelayan (Cloud) untuk diproses. 
+   - Jika internet sekolah terputus, Greetly masih beroperasi dan menyimpan rekod secara lokal (Offline Queue), sebelum dipam ke *Cloud* secara automatik.
+
+---
+
+## 3. Sudut Pandang Pelanggan (Jika Saya Adalah Guru Besar / CEO)
+
+Jika saya seorang bakal pelanggan, **SAYA AMAT MAHU MENGGUNAKAN GREETLY** berbanding pesaing atas 3 sebab utama:
+
+* **Membasmi Penipuan (No Buddy-Punching):** Pelajar dan pekerja tidak boleh "tolong *punch card*" untuk kawan mereka. Ciri **Anti-Spoofing** (Liveness Detection) Greetly juga menghalang mereka menipu menggunakan gambar telefon.
+* **Kebersihan (Hygiene & Keselamatan Kesihatan):** Semasa musim wabak (COVID-19 atau HFMD), sistem cap jari konvensional menjadi lubuk penyebaran virus kerana beribu jari menyentuh alat yang sama. Greetly adalah 100% *Contactless*.
+* **Bebas Masalah "Kad Hilang":** Teknologi RFID konvensional menelan kos yang tinggi apabila pelajar selalu menghilangkan kad atau tertinggal di rumah. Wajah pelajar tidak akan pernah hilang.
+
+### Kesimpulan untuk Pitching FYP:
+> *"Greetly bukan sekadar mencipta semula roda (reinvent the wheel). Greetly mendemokrasikan teknologi pengecaman wajah. Kami mengambil teknologi korporat bernilai ribuan ringgit dan memampatkannya ke dalam peranti kos rendah (Raspberry Pi) dengan perisian awan (Next.js) yang jauh lebih moden, menjadikannya mampu milik untuk setiap sekolah awam dan PKS di Malaysia."*
+
+
+
+======================================================
+
+# Greetly: Business Model Canvas & Roadmap to RM 1 Million
+
+Dokumen ini merangkumi pelan strategik komersial untuk **Greetly** – Sistem Kehadiran Pengecaman Wajah IoT (Raspberry Pi Edge AI + Next.js Dashboard + Supabase). Matlamat utama dokumen ini adalah untuk menyediakan strategi penembusan pasaran, terutamanya dalam sektor kerajaan (B2G), dan merangka peta jalan (roadmap) ke arah penjanaan hasil RM 1 Juta yang pertama.
+
+---
+
+## 1. Business Model Canvas (BMC)
+
+| Pillar | Butiran |
+| :--- | :--- |
+| **Customer Segments** | <ul><li>**Sektor Kerajaan (B2G):** Sekolah-sekolah di bawah Kementerian Pendidikan Malaysia (KPM), Pejabat Pendidikan Daerah (PPD), Jabatan Pendidikan Negeri (JPN).</li><li>**Sektor Swasta (B2B):** PKS (SME), kilang, pejabat korporat, tapak pembinaan yang memerlukan pemantauan kehadiran pekerja yang ketat dan efisien.</li></ul> |
+| **Value Propositions** | <ul><li>**Edge AI Processing:** Pengecaman pantas di peringkat peranti tanpa memerlukan internet berkelajuan tinggi berterusan.</li><li>**Cloud SaaS Dashboard:** Pemantauan dan pelaporan masa nyata (real-time) melalui Supabase dan Next.js, boleh diakses dari mana-mana peranti.</li><li>**Kos Efektif:** Jauh lebih murah berbanding sistem biometrik gred perusahaan tradisional, tanpa mengorbankan ketepatan.</li><li>**Pencegahan Penipuan (Anti-Spoofing):** Mengelakkan masalah 'buddy punching' yang biasa berlaku pada sistem kad perakam waktu (punch card) atau RFID.</li></ul> |
+| **Channels** | <ul><li>Penjualan B2B secara terus (Direct Sales).</li><li>Sistem ePerolehan Kerajaan (untuk tender/sebut harga KPM/PPD).</li><li>Rangkaian pengedar (Distributors) teknologi pendidikan & korporat.</li><li>Digital Marketing (LinkedIn B2B, Facebook Ads) untuk mensasarkan pengurus HR dan pengetua sekolah.</li></ul> |
+| **Customer Relationships** | <ul><li>Sokongan teknikal dan penyelenggaraan berkala (SLA - Service Level Agreement).</li><li>*Onboarding* dan latihan penggunaan perisian/perkakasan untuk staf admin/HR.</li><li>Langganan SaaS yang menyediakan kemas kini perisian secara automatik.</li></ul> |
+| **Revenue Streams** | <ul><li>**Jualan Perkakasan (Hardware):** Keuntungan one-off daripada jualan unit peranti IoT.</li><li>**SaaS Subscription (Recurring Revenue):** Yuran bulanan/tahunan untuk akses sistem dashboard, penyimpanan cloud, dan analitik.</li><li>**Yuran Pemasangan & Latihan:** Caj perkhidmatan (one-off) untuk setup di premis.</li></ul> |
+| **Key Resources** | <ul><li>**Teknologi:** Kod sumber Greetly (Raspberry Pi, Next.js, Supabase), rekaan perumah (3D printed case).</li><li>**Bakat:** Pembangun perisian (Software Engineer), pakar AI/IoT, dan pasukan jualan B2B.</li><li>**Infrastruktur:** Servis cloud (Supabase) dan bekalan komponen Raspberry Pi.</li></ul> |
+| **Key Activities** | <ul><li>Pembangunan dan Penyelenggaraan Perisian (R&D).</li><li>Pemasangan peranti dan jaminan kualiti (Quality Assurance).</li><li>Aktiviti Jualan & Pemasaran B2G/B2B (Pitching, POC).</li><li>Sokongan Pelanggan (Customer Support/Helpdesk).</li></ul> |
+| **Key Partnerships** | <ul><li>**Pembekal Komponen Elektronik:** Raspberry Pi, modul kamera, skrin OLED, pengilang 3D printing.</li><li>**Kementerian & Agensi Kerajaan:** KPM, MAMPU (untuk pensijilan/piawaian keselamatan data).</li><li>**Syarikat Telekomunikasi:** Untuk penyediaan sambungan 4G/5G dongle jika tiada WiFi di premis.</li></ul> |
+| **Cost Structure** | <ul><li>Kos Pembuatan Perkakasan (BOM - Bill of Materials).</li><li>Infrastruktur Cloud & Server (Supabase/Vercel dll).</li><li>Gaji Pekerja (R&D, Sales, Support).</li><li>Kos Pemasaran & Operasi Perniagaan.</li></ul> |
+
+---
+
+## 2. Analisis Pesaing & Peluang (Competitor & Opportunity Analysis)
+
+### Lanskap Semasa
+*   **Punch Cards (Kad Perakam Waktu):** Terlalu lapuk, memerlukan penyelenggaraan mesin, mudah dimanipulasi ('buddy punching'), dan memerlukan pengiraan manual yang memakan masa HR.
+*   **Sistem RFID/Kad Akses:** Lebih moden dari punch card, tetapi masih terdedah kepada kecurian identiti atau perkongsian kad ('buddy punching'). Kos penggantian kad yang hilang juga tinggi.
+*   **Sistem Biometrik Tradisional (Ultra-Expensive):** Sistem cap jari (fingerprint) berisiko menyebarkan kuman/virus (isu pasca COVID-19) atau sukar dibaca jika jari kotor/berpeluh. Sistem pengecaman wajah gred perusahaan lazimnya bernilai berpuluh ribu ringgit, memerlukan server fizikal (on-premise) yang mahal dan kompleks untuk diselenggara.
+
+### Kelebihan Kompetitif Greetly (Edge AI + Cloud SaaS Advantage)
+*   **Teknologi Hibrid Optimum:** Memanfaatkan kuasa **Edge AI** di Raspberry Pi untuk pemprosesan imej dan padanan wajah pada kelajuan tinggi tanpa *latency* internet.
+*   **Awan Berpusat (Cloud-First):** Data disegerakkan terus ke **Supabase** dan divisualisasikan melalui **Next.js Dashboard**, membolehkan pihak pengurusan (Pengetua/HR) memantau kehadiran cawangan/sekolah di seluruh negara dari satu skrin.
+*   **Sentuhan Sifar (Touchless):** Mengurangkan risiko penyebaran penyakit dan memberikan pengalaman pengguna yang pantas (walk-through attendance).
+*   **Sangat Berpatutan (Disruptive Pricing):** Kualiti setanding perusahaan pada titik harga mesra PKS dan sekolah bajet rendah.
+
+---
+
+## 3. Kos Pembuatan & Harga Jualan (Manufacturing Cost & Pricing Strategy)
+
+### Anggaran Kos Perkakasan (Hardware Cost / BOM)
+Untuk satu unit peranti Greetly:
+*   Raspberry Pi 3/4 (atau alternatif seumpamanya): ~RM 200
+*   Modul Kamera (Pi Camera / USB Camera): ~RM 40
+*   Skrin Paparan (OLED / LCD 3.5"): ~RM 60
+*   Perumah (3D Printed Case & heatsink/fan): ~RM 30
+*   Kabel, Power Supply (Adaptor) & MicroSD: ~RM 20
+*   **Jumlah Anggaran Kos (COGS): ~RM 350 / unit**
+
+### Strategi Penentuan Harga (Pricing Proposal)
+Model perniagaan Greetly akan bergantung kepada HaaS (Hardware-as-a-Service) atau Jualan Terus + SaaS.
+
+1.  **Harga Jualan Perkakasan (Hardware): RM 999 / unit**
+    *   *Margin Keuntungan Kasar (Gross Margin) Perkakasan: ~RM 649 (65%)*
+2.  **SaaS Subscription (Langganan Perisian): RM 150 / bulan / premis**
+    *   Pendapatan Berulang (Recurring Revenue) untuk akses ke Next.js Dashboard, laporan analitik, sokongan teknikal, dan penyimpanan cloud.
+
+*Nota: Pemasangan fizikal (Installation) boleh dicas secara berasingan (contoh: RM 200 - RM 500 bergantung kepada kerumitan lokasi).*
+
+---
+
+## 4. Roadmap RM 1 Juta Pertama (The RM 1 Million Masterplan)
+
+Bagaimana Greetly boleh mencapai pendapatan kasar RM 1,000,000?
+
+### Senario Jualan B2B / B2G
+
+Berdasarkan struktur harga di atas:
+*   **Hasil Jualan Perkakasan (Year 1):** RM 999
+*   **Hasil Langganan SaaS (Year 1):** RM 150 x 12 bulan = RM 1,800
+*   **Total LTV (Customer Lifetime Value untuk Tahun Pertama): RM 2,799 / pelanggan**
+
+### Kiraan Sasaran Jualan (Target Calculation)
+Untuk mencapai RM 1,000,000 dalam masa setahun, kita memerlukan:
+
+**RM 1,000,000 / RM 2,799 = ~358 unit / pelanggan**
+
+Jika kita memecahkan sasaran ini:
+*   Kita hanya perlu mensasarkan **358 buah sekolah** atau cawangan syarikat di seluruh Malaysia.
+*   Sebagai perspektif, terdapat lebih daripada **10,000 buah sekolah** di Malaysia di bawah KPM. 358 buah sekolah mewakili kurang daripada **3.5%** penembusan pasaran KPM sahaja!
+*   Jika pasukan jualan mampu menutup deal untuk **30 buah sekolah sebulan**, Greetly akan menjana lebih RM 1 Juta pada bulan ke-12.
+
+*Ini adalah model 'recurring revenue' (langganan bulanan). Pada Tahun ke-2, jika tiada jualan perkakasan baharu pun, langganan daripada 358 pelanggan ini sahaja akan menjana **RM 644,400 setahun** (RM 150 x 12 x 358) yang merupakan margin untung bersih yang sangat tinggi!*
+
+---
+
+## 5. Strategi B2G (Tender Kerajaan / KPM)
+
+Pasaran kerajaan, terutamanya Kementerian Pendidikan Malaysia (KPM) merupakan sasaran lubuk emas. Namun, proses perolehannya memerlukan langkah yang strategik dan pematuhan birokrasi.
+
+### Langkah-langkah Menembusi KPM / Kerajaan (B2G Penetration Strategy)
+
+1.  **Pendaftaran MOF (Kementerian Kewangan Malaysia):**
+    *   Syarikat wajib berdaftar di bawah sijil MOF dengan kod bidang (kod taraf Bumiputera jika berkenaan) yang relevan seperti *Perkakasan/Peralatan Komputer*, *Perisian Komputer*, dan *Sistem ICT*.
+    *   Sijil MOF adalah tiket utama untuk layak menyertai sebut harga atau tender kerajaan.
+
+2.  **Akaun ePerolehan:**
+    *   Pastikan syarikat telah aktif dalam sistem ePerolehan Kerajaan. Semua transaksi B2G, Invois dan Pesanan Kerajaan (Local Order/LO) akan dilakukan melalui sistem ini.
+
+3.  **Pelaksanaan 'Proof of Concept' (POC) atau Pilot Project (Paling Kritikal):**
+    *   **Tindakan:** Pilih 1 hingga 3 buah sekolah tempatan atau sekolah elit berdekatan kawasan operasi.
+    *   **Tawaran:** Tawarkan penggunaan sistem Greetly secara *PERCUMA* (tajaan) selama 3 ke 6 bulan sebagai **Pilot Project**.
+    *   **Objektif:** Kumpulkan data penggunaan (use case), maklum balas guru/pengetua, dan buktikan (verify) kebolehpercayaan sistem dalam keadaan sebenar (contoh: waktu kemuncak 7:00 pagi ketika beratus pelajar masuk serentak).
+    *   **Hasil:** Jadikan laporan POC, testimonial Pengetua, dan metrik keberkesanan sekolah tersebut sebagai *'Success Story'* dan bahan rujukan (portfolio) apabila memohon tender rasmi (Pitching Deck) di peringkat PPD, JPN, atau Ibu Pejabat KPM.
+
+4.  **Pensijilan dan Pematuhan Data (PDPA / Keselamatan Siber):**
+    *   Kerajaan sangat sensitif terhadap data peribadi, apatah lagi data biometrik (wajah) kanak-kanak/pelajar.
+    *   Dokumentasikan dengan jelas seni bina (architecture) keselamatan Greetly. Pastikan pematuhan terhadap Akta Perlindungan Data Peribadi 2010 (PDPA) dan nyatakan bagaimana imbasan wajah diproses di Edge AI dan data disulitkan (encrypted) di cloud (Supabase/PostgreSQL RLS).
+
+5.  **Pitching Berpusat atau Pembelian Terus (Direct Nego / Sebut Harga):**
+    *   Sebut harga di bawah RM 20,000 biasanya boleh dilakukan menerusi pembelian terus / sebut harga peringkat sekolah atau PPD.
+    *   Gunakan jaringan (networking) dari sekolah perintis (Pilot Project) untuk melobi sekolah-sekolah lain di bawah daerah yang sama (PPD). Apabila lebih banyak sekolah menggunakannya, ia mudah menarik perhatian peringkat negeri (JPN) untuk pelaksanaan secara borong (bulk tender).
+
+
+======================================================
+
+
+# Panduan Penskalaan Perkakasan (Hardware Scaling Guide)
+*Dari Prototaip "Kotak Wayar" ke Peranti Kelas Industri (High-End)*
+
+Untuk membawa Greetly daripada sebuah prototaip universiti (Raspberry Pi 3 + wayar *jumper*) kepada produk komersial bertaraf global (seperti ZKTeco atau peranti Apple-level), ini adalah peta jalan (*roadmap*) kejuruteraan pembuatan yang perlu anda lalui.
+
+---
+
+## Fasa 1: Prototaip (Sekarang)
+- **Casing:** Kotak biasa / kotak plastik DIY.
+- **Otak (MCU):** Raspberry Pi 3 Model B.
+- **Sambungan:** Wayar Jumper (*Spaghetti Wires*), *Breadboard*.
+- **Paparan:** OLED 0.96 inci yang sangat kecil.
+- **Kos / Unit:** ~RM 350.
+- **Tujuan:** Bukti Konsep (*Proof of Concept* - POC) untuk lulus FYP dan yakinkan pelabur pertama.
+
+---
+
+## Fasa 2: Minimum Viable Product (MVP) - Pre-Production (Untuk 10-50 Unit Pertama)
+Sebelum kilang besar sudi buat produk anda, anda perlukan versi kemas untuk pelanggan pertama (Pilot Project sekolah).
+- **Casing (3D Printing / Resin):** Anda reka bentuk *casing* menggunakan *software* CAD (AutoCAD/SolidWorks) yang kelihatan futuristik seperti gambar AI anda. Hantar ke kedai 3D Print (SLA/Resin) untuk hasil yang licin (*smooth finish*).
+- **Sambungan (Custom PCB):** Tiada lagi wayar *jumper*! Anda reka *Printed Circuit Board* (PCB) khas. Raspberry Pi, Buzzer, dan skrin akan dicucuk terus (plug-in) atas satu papan litar hijau yang kemas. Kos tempah PCB dari kilang China (contoh: JLCPCB) sangat murah, serendah RM 20 untuk 5 keping.
+- **Paparan:** Naik taraf kepada skrin LCD IPS 3.5 inci atau 5 inci.
+- **Kos / Unit:** ~RM 450.
+
+---
+
+## Fasa 3: Pengeluaran Massa Kelas Industri (High-Class / Scalable)
+Apabila anda mendapat tender 1,000 unit sekolah kerajaan, prototaip Pi 3 sudah tidak relevan. Anda perlu beralih ke tahap "*Enterprise*".
+
+### 1. Perubahan Otak (Processing Power)
+Raspberry Pi 3 mudah panas dan cipnya tidak direka khusus untuk A.I berterusan 24/7. Anda akan beralih kepada cip *Edge A.I* yang sebenar:
+* **Raspberry Pi Compute Module (CM4 / CM5):** Ia adalah versi Pi tanpa *port* USB/HDMI (hanya cip mentah). Ia dipateri terus ke atas *Custom PCB* syarikat anda.
+* **Rockchip RK3588 (Pilihan Industri):** Ini adalah cip yang digunakan oleh 90% peranti *Face Recognition* China. Sangat laju, menyokong kamera 4K, dan tidak panas.
+* **Nvidia Jetson Nano / Google Coral TPU:** Jika anda gunakan A.I tahap dewa (Deep Learning canggih), cip ini mempunyai *Hardware Accelerator* khas untuk baca muka berpuluh-puluh orang serentak dalam 1 saat.
+
+### 2. Casing (Plastic Injection Molding)
+Untuk buat badan peranti nampak licin, premium, dan berkilat macam peranti sebenar, anda mesti guna kilang (Injection Molding).
+* **Kos Acuan Besi (Mold):** Ini bahagian paling **MAHAL**. Kos menebuk blok besi untuk acuan *casing* anda selalunya berharga **RM 15,000 - RM 40,000** (bayar sekali sahaja / *One-off*).
+* **Kos Casing Seunit:** Setelah acuan siap, kos untuk leburkan plastik dan hasilkan *casing* hanyalah **RM 5 ke RM 10 seunit!** Di sinilah keuntungan besar (*Scalability*) berlaku jika jualan ribuan unit.
+
+### 3. Modul Kamera (ISP)
+Kamera *webcam* biasa akan ditukar kepada **Kamera Dwi-Lensa (Dual-Lens RGB + IR)**. Satu lensa warna, satu lensa inframerah. Ini memastikan muka pelajar tetap boleh dikesan dalam keadaan gelap gelita (pagi buta di sekolah) dan menghalang 100% penipuan gambar 2D/3D (Spoofing).
+
+### 4. Pensijilan (Certification)
+Untuk jual ke gergasi / kerajaan, peranti anda perlu dihantar ke makmal ujian untuk mendapatkan tanda **SIRIM** (Malaysia), **CE** (Eropah), dan **FCC** (US) bagi mengesahkan ia tidak meletup atau terbakar apabila dipasang 24 jam sehari.
+
+---
+
+## Kesimpulan: Susah ke nak cari kilang?
+**Tidak susah!** Anda tidak perlu bina kilang sendiri. Syarikat besar macam Apple pun tidak bina kilang, mereka guna **OEM / ODM** (seperti Foxconn) di Shenzhen, China atau di Pulau Pinang, Malaysia. Anda hanya hantar lukisan 3D dan skema litar kepada kilang di Pulau Pinang/China, bayar, dan kilang akan hantar beribu-ribu unit "Greetly" dalam kotak siap berbalut plastik kepada anda.
+
+
+
+======================================================
+
+
+# Greetly: Pelan Induk Startup Keselamatan & AI (The Grand Vision)
+
+Visi utama **Greetly** bukan sekadar sistem kedatangan sekolah. Greetly adalah sebuah **Syarikat Permulaan Teknologi (Tech Startup)** yang memfokuskan kepada Keselamatan Dikuasakan AI (AI-Powered Security) untuk menyelesaikan masalah sebenar manusia.
+
+Berikut adalah **10 Idea Produk Berpotensi Tinggi** yang berada di bawah payung ekosistem Greetly, dirangka untuk pelan jangka masa 1 hingga 5 tahun.
+
+---
+
+## Fasa 1: Penguasaan Identiti & Akses (Tahun 1-2)
+
+### 1. Greetly Attendance (Produk Utama - Sedia Ada)
+* **Penyelesaian:** Sistem kedatangan biometrik tanpa sentuh untuk sekolah dan pejabat menggunakan Edge AI (Raspberry Pi).
+* **Masalah Selesai:** "Buddy-punching", kelewatan, penyebaran kuman melalui mesin cap jari.
+
+### 2. Greetly Access (Kunci Pintu Pintar)
+* **Penyelesaian:** Modul kawalan pintu (Door Access Control) menggunakan wajah. Jika muka dikenalpasti, geganti (Relay) pada Raspberry Pi akan membuka *Magnetic Door Lock*.
+* **Masalah Selesai:** Masalah staf tertinggal kad *access* atau kunci fizikal dicuri. Boleh diintegrasi terus dengan sistem log kehadiran HR.
+
+### 3. Greetly Vault (Pengesahan Identiti / e-KYC API)
+* **Penyelesaian:** Menjual perisian pengecaman liveness (Anti-Spoofing) yang kita bina sebagai API kepada bank, aplikasi e-wallet, atau perkhidmatan awam.
+* **Masalah Selesai:** Sindiket penipuan yang menggunakan gambar atau topeng palsu untuk membuka akaun bank palsu.
+
+---
+
+## Fasa 2: Pengawasan Komersial & Keselamatan Awam (Tahun 3-4)
+
+### 4. Greetly Vision (CCTV Pintar Anti-Penceroboh)
+* **Penyelesaian:** Menyuntik AI ke dalam CCTV bodoh (biasa) sedia ada. Ia akan membunyikan penggera pintar jika mengecam kelibat manusia di kawasan larangan selepas jam 12 malam, sambil mengabaikan pergerakan kucing atau dahan pokok.
+* **Masalah Selesai:** Pengawal keselamatan tertidur atau tidak perasan penceroboh di skrin yang terlalu banyak.
+
+### 5. Greetly Sentinel (Bantuan PDRM / Orang Hilang)
+* **Penyelesaian:** Sistem pangkalan data wajah yang diintegrasikan pada kamera awam untuk mencari suspek jenayah, atau kanak-kanak/orang tua yang hilang (Dementia).
+* **Masalah Selesai:** Polis tidak perlu lagi meneliti rakaman CCTV berjam-jam secara manual. A.I akan *flag* lokasi terakhir sasaran serta-merta.
+
+### 6. Greetly Retail (Analitik Peruncitan & Anti-Kecurian)
+* **Penyelesaian:** A.I yang mengecam pergerakan mencurigakan di pasar raya (contohnya pergerakan tangan memasukkan barang ke dalam jaket), atau mengecam pelanggan VIP yang masuk ke butik mewah.
+* **Masalah Selesai:** Kerugian berjuta ringgit akibat kecurian runcit (*shoplifting*) yang tidak dapat dipantau sepenuhnya oleh staf.
+
+### 7. Greetly Campus (Pengesan Buli & Pergaduhan)
+* **Penyelesaian:** A.I gabungan visual dan audio di koridor sekolah. Ia mengesan corak pergerakan agresif (tumbuk/tendang) atau jeritan kuat, dan terus menghantar notifikasi kecemasan ke telefon guru disiplin.
+* **Masalah Selesai:** Kes buli fizikal di kawasan tersorok yang selalu berakhir dengan kecederaan serius atau kematian.
+
+---
+
+## Fasa 3: Keselamatan Nyawa & Automotif (Tahun 5)
+
+### 8. Greetly DriveSense (Keselamatan Automotif E-Hailing)
+* **Penyelesaian:** Kamera *Dashcam* yang menghadap pemandu. Ia akan mengesan *Microsleep* (mata tertutup melebihi 2 saat), menguap berlebihan, atau mengesan bunyi jeritan/pergelutan dalam kereta (amat berguna untuk pemandu Grab/e-hailing).
+* **Masalah Selesai:** Kemalangan maut akibat mengantuk dan kes rompakan/pembunuhan pemandu e-hailing.
+
+### 9. Greetly Care (Pemantauan Warga Emas)
+* **Penyelesaian:** Kamera privasi (*Privacy-First Edge AI*) di pusat jagaan atau rumah orang tua. Ia tidak merekod video (menjaga aurat/privasi), tetapi ia hanya mengira posisi tubuh. Jika ia mengecam posisi terjatuh (*Fall Detection*) dan tidak bergerak, amaran akan dihantar ke ambulans.
+* **Masalah Selesai:** Warga emas meninggal dunia keseorangan akibat terjatuh di bilik air tanpa disedari keluarga.
+
+### 10. Greetly Shield (Pematuhan Keselamatan Tapak Pembinaan)
+* **Penyelesaian:** Kamera A.I di pintu masuk tapak binaan (Construction Site). Pekerja tidak boleh melepasi palang (gate) selagi A.I tidak mengesan mereka memakai Topi Keselamatan (Helmet), Jaket Pantulan, dan Kasut Keselamatan.
+* **Masalah Selesai:** Kemalangan maut di tempat kerja akibat kecuaian pekerja mematuhi SOP perlengkapan PPE.
+
+---
+
+**Nota Pengasas:** Kesemua modul di atas dikuasakan oleh tunjang yang sama�Edge AI dan Analitik Awan (Cloud Analytics). Greetly akan bermula di sekolah, berkembang ke pejabat, menyusup ke jalan raya, dan akhirnya melindungi negara.
+
+
+
+======================================================
+
+
+# CIP Spark Grant: Panduan Lengkap & Checklist Permohonan
+**Untuk:** Greetly (Startup IoT Edge AI Facial Recognition)
+**Oleh:** Syahmi
+
+## 1. Pengenalan CIP Spark
+Cradle Investment Programme (CIP) Spark adalah geran prapembenihan (pre-seed) bersyarat yang ditawarkan oleh Cradle Fund Sdn Bhd (di bawah agensi MOSTI). Geran ini bertujuan untuk membantu usahawan teknologi pada peringkat awal membangunkan idea, prototaip, dan *Minimum Viable Product* (MVP) sehingga sedia untuk dikomersialkan.
+- **Jumlah Pembiayaan:** Sehingga RM 150,000
+- **Tempoh:** Sehingga 18 bulan
+- **Penggunaan Dana:** Sekurang-kurangnya 60% untuk perbelanjaan pembangunan (*developmental expenses*) dan maksimum 40% untuk perbelanjaan bukan pembangunan/komersial (contoh: Pemasaran).
+
+## 2. Syarat Kelayakan
+Permohonan dibuka untuk individu berkelompok dan juga syarikat terdaftar.
+
+**Untuk Syarikat (Sdn Bhd, Enterprise, atau LLP):**
+- **Umur Syarikat:** Mesti kurang daripada 5 tahun semasa tarikh permohonan.
+- **Pendapatan:** Pendapatan terkumpul tidak boleh melebihi RM 3 juta.
+- **Pemilikan:** Sekurang-kurangnya 51% pegangan saham dimiliki oleh warganegara Malaysia (atau jika kurang 51%, majoriti pekerja perlulah warganegara Malaysia).
+- **Pemilikan Saham Korporat:** Tiada syarikat lain yang memegang 25% atau lebih saham dalam syarikat pemohon.
+- **Harta Intelek (IP):** Pemohon mestilah mempunyai atau sedang memohon hak harta intelek yang sah terhadap produk yang dibangunkan (boleh mula hantar cap dagang - *Trademark* MyIPO untuk logo Greetly).
+
+**Untuk Pasukan Individu (Pra-Syarikat):**
+- Minimum dua (2) orang ahli pasukan (Co-Founders).
+- Sekurang-kurangnya seorang ahli adalah warganegara Malaysia dan menetap di Malaysia.
+
+## 3. Proses Permohonan
+1. **Pendaftaran & Hantar Permohonan:** Permohonan dihantar secara atas talian melalui portal **MYStartup Single Window**. Permohonan dibuka sepanjang tahun (*rolling basis*) tertakluk kepada ketersediaan dana dari MOF.
+2. **Saringan Awal (*Shortlisting*):** Pasukan penilai Cradle akan menapis kelengkapan dokumen permohonan dan *pitch deck*.
+3. **Sesi Pitching:** Pemohon yang disenarai pendek akan dipanggil untuk sesi *pitching* fizikal atau *online* di hadapan panel penilai Cradle (Bersedia dengan Prototaip Greetly!).
+4. **Usaha Wajar (*Due Diligence*):** Selepas berjaya dalam pitching, permohonan akan melalui proses *due diligence* teknikal dan komersial sebelum kelulusan muktamad.
+5. **Kelulusan:** Keseluruhan proses dari sesi pitching ke peringkat penyaluran tunai biasanya mengambil masa kira-kira dua (2) bulan.
+
+## 4. Checklist Dokumen & Persiapan (To-Do List untuk Syahmi)
+- [ ] **Pendaftaran Portal:** Buka akaun dan layari portal MYStartup Single Window (mystartup.gov.my).
+- [ ] **Status Perniagaan:** Daftarkan entiti perniagaan (Paling mudah: SSM Enterprise / PLT) dan pastikan berstatus aktif.
+- [ ] **Pitch Deck (Slaid Pembentangan Utama):** 
+  - Pernyataan Masalah (*Problem Statement*) - Kesukaran pantau kedatangan, isu kebersihan biometrik lama.
+  - Penyelesaian (*Solution*) - Paparkan sistem Greetly dan kelebihan teknologi Edge AI.
+  - Saiz Pasaran (*Market Size*) - KPM, Sekolah Awam, Syarikat PKS.
+  - Model Perniagaan (*Business Model*) - Jualan Perkakasan + Langganan SaaS.
+  - Pasukan (*Team*) - Serlahkan kepakaran ahli pasukan (Contoh: Kepakaran Hardware IoT & Web Dev).
+  - Penggunaan Dana (*Use of Funds*) - Nyatakan pecahan jelas bagaimana wang RM 150k akan diguna (Contoh: Acuan Kilang, Gaji Pengaturcara, Pemasaran).
+- [ ] **Unjuran Kewangan (*Financial Projections*):** Unjuran aliran tunai masuk keluar bagi sekurang-kurangnya 18 bulan pertama tempoh geran.
+- [ ] **Demo Prototaip (Wajib untuk Greetly):** Sediakan rakaman video 1 minit, atau bawa Raspberry Pi semasa pitching dan demonstrasi kelajuan sistem mengenalpasti wajah dalam masa 1 saat!
+- [ ] **Traction/Validasi Pasaran:** Dapatan surat sokongan (*Letter of Intent*) dari sekolah atau rakan yang sudi guna sistem anda.
+
+## 5. Tips Emas Menang Pitching Cradle (Khas untuk Greetly)
+- **Ketengahkan Kelebihan Teknologi (Edge AI vs Cloud API):** Panel Cradle amat teknikal dan menggemari inovasi tulen. Terangkan dengan jelas mengapa Edge AI lebih baik daripada sistem berasaskan *Cloud* biasa (Sebutkan: Pemprosesan imej berlaku di dalam cip Pi tanpa menghantar gambar wajah ke *cloud*, menyelesaikan isu privasi Data PDPA!).
+- **Serlahkan Potensi B2G (*Business-to-Government*):** Oleh kerana keselamatan data amat penting bagi pihak kerajaan (KPM), sistem yang mematuhi tahap privasi tinggi mempunyai peluang terbesar menembusi e-Perolehan.
+- **Rancangan RM150k Yang Realistik:** Panel perlu diyakinkan bahawa duit tersebut tak dihabiskan untuk benda merapu. Nyatakan RM 30k untuk R&D Papan Litar PCB, RM 40k untuk Acuan Kilang Plastik, RM 50k untuk pemasaran dan operasi. Ini menunjukkan anda faham proses penskalaan peranti *hardware*.
+
+
+
+======================================================
+
+# Panduan Pematuhan Undang-Undang dan PDPA 2010 untuk Greetly
+
+## 1. Pengenalan PDPA 2010 (Akta 709)
+Akta Perlindungan Data Peribadi 2010 (PDPA) adalah undang-undang Malaysia yang mengawal selia pemprosesan data peribadi dalam transaksi komersial. Bagi sistem pengecaman wajah (facial recognition) seperti Greetly, ia melibatkan pengumpulan, penyimpanan, dan penggunaan ciri-ciri biometrik individu. Menurut PDPA, sebarang data yang boleh mengenal pasti seseorang individu secara langsung atau tidak langsung adalah tertakluk kepada akta ini. Greetly wajib mematuhi 7 Prinsip Perlindungan Data Peribadi di bawah PDPA bagi mengelakkan penalti perundangan, termasuk denda ratusan ribu ringgit dan penjara.
+
+## 2. Data Peribadi Sensitif (Sensitive Personal Data)
+Di bawah PDPA, data biometrik (termasuk imbasan wajah) sering dikategorikan sebagai **Data Peribadi Sensitif** kerana ia melibatkan ciri fizikal unik seseorang.
+- **Kebenaran Eksplisit (Explicit Consent):** Anda tidak boleh memproses data peribadi sensitif tanpa kebenaran bertulis yang jelas daripada subjek data.
+- **Kanak-kanak & Pelajar Sekolah:** Jika Greetly digunakan di sekolah, kanak-kanak di bawah umur 18 tahun tidak boleh memberikan kebenaran yang sah di sisi undang-undang. Oleh itu, **kebenaran bertulis daripada ibu bapa atau penjaga sah adalah diwajibkan** sebelum sebarang data wajah pelajar boleh diimbas, direkodkan, dan diproses.
+
+## 3. Apa Yang BOLEH (Dos)
+- **Dapatkan Persetujuan Jelas:** Sediakan borang persetujuan (consent form) yang mudah difahami sebelum mendaftarkan wajah pengguna.
+- **Paparkan Notis Privasi:** Sediakan Notis Privasi (dalam Bahasa Melayu dan Bahasa Inggeris) yang menjelaskan tujuan pengumpulan data, dengan siapa data dikongsi, dan hak pengguna, seiring dengan Prinsip Notis dan Pilihan.
+- **Enkripsi Data (Data Encryption):** Pastikan semua data yang dihantar dan disimpan disulitkan (encrypted). Contohnya, menggunakan ciri keselamatan pangkalan data seperti Supabase (Row Level Security - RLS) dan enkripsi pangkalan data (encryption-at-rest) untuk melindungi log kedatangan.
+- **Beri Hak Akses & Pembetulan:** Pengguna harus diberi cara dan hak untuk memohon akses kepada data peribadi mereka dan membetulkannya sekiranya tidak tepat.
+
+## 4. Apa Yang TIDAK BOLEH (Don'ts)
+- **Jangan Jual Data:** Dilarang keras menjual, menyewa, atau berkongsi data peribadi dan biometrik pengguna kepada pihak ketiga (seperti syarikat pengiklanan) tanpa kebenaran.
+- **Jangan Simpan Data Selama-lamanya (Prinsip Penyimpanan):** Data tidak boleh disimpan lebih lama daripada yang diperlukan. Jika pelajar tamat sekolah (habis Tingkatan 5) atau pekerja berhenti kerja, data biometrik mereka mesti dipadamkan secara kekal dari pangkalan data.
+- **Jangan Abaikan Keselamatan (Prinsip Keselamatan):** Jangan amalkan langkah keselamatan yang longgar (sloppy security) seperti membiarkan fail gambar mentah terdedah di internet tanpa kata laluan. Kehilangan data akibat kecuaian adalah satu kesalahan jenayah di bawah PDPA.
+
+## 5. Kelebihan Edge AI Greetly dalam Pematuhan PDPA
+Seni bina Greetly yang memproses pengecaman wajah secara lokal (Edge AI) menggunakan Raspberry Pi merupakan satu **kelebihan besar dalam pematuhan privasi** berbanding pesaing:
+- **Tiada Penghantaran Video Mentah:** Video atau gambar wajah mentah tidak dihantar ke pelayan awan (cloud server) pusat untuk diproses. Semua pemprosesan imej berlaku pada pagar sekolah / peranti itu sendiri (on-device processing).
+- **Pengurangan Risiko Kebocoran Data (Mass Data Breach):** Memandangkan pelayan awan tidak menyimpan lambakan gambar mentah pengguna, risiko kecurian identiti biometrik akibat penggodaman pangkalan data dapat dikurangkan secara drastik. Ini menjadikan Greetly sebuah sistem yang mengamalkan konsep *Privacy-by-Design*.
+
+## 6. Langkah Seterusnya untuk Syahmi
+- **Rangka Borang Persetujuan (Consent Form):** Sediakan borang persetujuan rasmi PDF untuk diedarkan oleh pihak sekolah kepada ibu bapa semasa sesi pendaftaran Greetly kelak.
+- **Daftar dengan JPDP:** Sekiranya Greetly dipasarkan secara komersial (contohnya, menjual sistem ini sebagai B2B/B2G dan anda bertindak sebagai pemproses data), Syarikat anda diwajibkan mendaftar sebagai Pengguna Data dengan **Jabatan Perlindungan Data Peribadi (JPDP)** di Malaysia.
+- **Laksanakan Polisi Pemadaman Data Automatik (Cron Job):** Bina satu sistem pemadaman di Supabase untuk memadam data biometrik pelajar yang sudah "Lulus / Berhenti" secara automatik.

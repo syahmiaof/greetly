@@ -2,14 +2,60 @@
 import React, { useState, useEffect } from 'react';
 
 import { useChat } from '@ai-sdk/react';
-import { Bot, Send, User, Activity, FileText, Clock, Cpu, MoreHorizontal, Database, Network, AlertTriangle, Search } from 'lucide-react';
+import { Bot, Send, User, Activity, FileText, Clock, Cpu, MoreHorizontal, Database, Network, AlertTriangle, Search, Trash2 } from 'lucide-react';
+import { useAttendance } from '@/hooks/useAttendance';
 
 export default function CopilotPage() {
   const [myInput, setMyInput] = useState('');
-  const { messages, sendMessage, status } = useChat({ 
+  const [mounted, setMounted] = useState(false);
+  const [initialMessages, setInitialMessages] = useState<any[]>([]);
+
+  const { metrics, totalStudents } = useAttendance();
+
+  useEffect(() => {
+    const saved = localStorage.getItem('copilot_messages');
+    if (saved) {
+      try {
+        setInitialMessages(JSON.parse(saved));
+      } catch(e) {}
+    }
+    setMounted(true);
+  }, []);
+
+  const { messages, sendMessage, status, setMessages } = useChat({ 
+    initialMessages,
+    onFinish: () => {
+      // Play high-tech notification sound
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.05);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.2);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.2);
+      } catch(e) {}
+    },
     onError: (e) => alert("Error API: " + e.message) 
   });
   const isLoading = status !== 'ready' && status !== 'error';
+
+  useEffect(() => {
+    if (mounted && messages.length > 0) {
+      localStorage.setItem('copilot_messages', JSON.stringify(messages));
+    }
+  }, [messages, mounted]);
+
+  const clearChat = () => {
+    setMessages([]);
+    localStorage.removeItem('copilot_messages');
+  };
 
   const handleSend = () => {
     if (!myInput.trim() || isLoading) return;
@@ -110,23 +156,25 @@ export default function CopilotPage() {
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(244,63,94,0.1)_0%,transparent_70%)]"></div>
                     <Search className="text-rose-400 w-12 h-12 mb-4 animate-bounce" />
                     <h3 className="text-sm text-rose-400 uppercase font-bold tracking-widest text-center">Scanning Absentees</h3>
-                    <p className="text-xs text-slate-400 mt-2">Cross-referencing database records...</p>
-                    {/* Scanning line */}
+                    <p className="text-xs text-slate-400 mt-2">Found {metrics?.absentToday || 0} missing students</p>
                     <div className="absolute left-0 right-0 h-1 bg-rose-500/50 top-0 animate-[scan_2s_ease-in-out_infinite]"></div>
                   </div>
                   
                   <div className="border border-white/5 rounded-xl bg-slate-800/30 p-4">
-                    <h3 className="text-xs text-slate-400 uppercase mb-4 tracking-wider">Watchlist Preview</h3>
+                    <h3 className="text-xs text-slate-400 uppercase mb-4 tracking-wider">Watchlist (Absent Today)</h3>
                     <div className="space-y-3">
-                      {[1,2,3].map(i => (
-                        <div key={i} className="flex justify-between items-center p-2 rounded bg-slate-900/50 border border-white/5">
+                      {Array.from({length: Math.min(metrics?.absentToday || 0, 4)}).map((_, i) => (
+                        <div key={i} className="flex justify-between items-center p-2 rounded bg-slate-900/50 border border-rose-500/10">
                           <div className="flex items-center gap-3">
                             <div className="w-6 h-6 rounded-full bg-rose-500/20 flex items-center justify-center text-xs text-rose-400">?</div>
-                            <div className="w-24 h-2 bg-slate-700 rounded animate-pulse"></div>
+                            <div className="w-24 h-2 bg-slate-600 rounded"></div>
                           </div>
-                          <div className="w-12 h-2 bg-slate-700 rounded animate-pulse"></div>
+                          <div className="w-12 h-2 bg-slate-700 rounded"></div>
                         </div>
                       ))}
+                      {(metrics?.absentToday || 0) === 0 && (
+                        <p className="text-xs text-slate-500 text-center py-2">No absentees detected yet.</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -193,7 +241,11 @@ export default function CopilotPage() {
               <h2 className="text-xs font-bold tracking-widest text-cyan-400 uppercase flex items-center gap-2">
                 <Bot size={14} /> AI Assistant | SYNTHIA
               </h2>
-              <MoreHorizontal size={16} className="text-slate-500" />
+              <div className="flex items-center gap-2">
+                <button onClick={clearChat} className="p-1 hover:bg-white/10 rounded text-slate-500 hover:text-rose-400 transition-colors" title="Clear Chat">
+                  <Trash2 size={16} />
+                </button>
+              </div>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-slate-950/20">

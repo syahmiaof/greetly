@@ -129,25 +129,40 @@ export function useAttendance() {
 
   // Calculate Monthly Averages (Percentages)
   const totalMonthlyScans = monthlyRecords.length || 1;
-  const monthlyPresentPct = ((monthlyRecords.filter(r => r.status.toLowerCase() === 'present').length / totalMonthlyScans) * 100).toFixed(1);
-  const monthlyAbsentPct = ((monthlyRecords.filter(r => r.status.toLowerCase() === 'absent').length / totalMonthlyScans) * 100).toFixed(1);
-  const monthlyLatePct = ((monthlyRecords.filter(r => r.status.toLowerCase() === 'late').length / totalMonthlyScans) * 100).toFixed(1);
+  const monthlyPresentPct = ((monthlyRecords.filter(r => r.status.toLowerCase() === 'present' || r.status.toLowerCase() === 'hadir').length / totalMonthlyScans) * 100).toFixed(1);
+  const monthlyAbsentPct = ((monthlyRecords.filter(r => r.status.toLowerCase() === 'absent' || r.status.toLowerCase() === 'tak hadir').length / totalMonthlyScans) * 100).toFixed(1);
+  const monthlyLatePct = ((monthlyRecords.filter(r => r.status.toLowerCase() === 'late' || r.status.toLowerCase() === 'lewat').length / totalMonthlyScans) * 100).toFixed(1);
 
   // Today's records (deduplicated by student_id to count unique students)
   const rawTodayRecords = records.filter(r => new Date(r.created_at).toDateString() === new Date().toDateString());
   const uniqueTodayMap = new Map();
+  
+  // Enforce new rules: < 8am (Present), 8am-11am (Late), > 11am (Absent/Ignored for present/late counts)
   [...rawTodayRecords].reverse().forEach(r => {
     if (!uniqueTodayMap.has(r.student_id)) {
-      uniqueTodayMap.set(r.student_id, r);
+      const scanTime = new Date(r.created_at);
+      const timeVal = scanTime.getHours() + (scanTime.getMinutes() / 60);
+      
+      let computedStatus = 'present';
+      if (timeVal >= 11) computedStatus = 'absent';
+      else if (timeVal >= 8) computedStatus = 'late';
+      
+      uniqueTodayMap.set(r.student_id, { ...r, computedStatus });
     }
   });
   const todayRecords = Array.from(uniqueTodayMap.values());
 
+  const presentToday = todayRecords.filter((r: any) => r.computedStatus === 'present').length;
+  const lateArrivals = todayRecords.filter((r: any) => r.computedStatus === 'late').length;
+  
+  // Absent is anyone who didn't scan before 11am
+  const absentToday = Math.max(0, totalStudents - (presentToday + lateArrivals));
+
   const metrics = {
     totalStudents: totalStudents,
-    presentToday: todayRecords.filter((r) => r.status.toLowerCase() === 'present').length,
-    absentToday: todayRecords.filter((r) => r.status.toLowerCase() === 'absent').length,
-    lateArrivals: todayRecords.filter((r) => r.status.toLowerCase() === 'late').length,
+    presentToday,
+    absentToday,
+    lateArrivals,
     monthlyPresentPct,
     monthlyAbsentPct,
     monthlyLatePct

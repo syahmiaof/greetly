@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
+import { CopilotWidget } from '@/components/CopilotWidget';
 
 const spaceGrotesk = Space_Grotesk({
   variable: '--font-space-grotesk',
@@ -25,6 +26,7 @@ export default function RootLayout({
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 pb-32 md:pb-8 z-10 w-full">
           {children}
         </main>
+        <CopilotWidget />
       </body>
     </html>
   );
