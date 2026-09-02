@@ -51,7 +51,6 @@ export default function CopilotPage() {
     setMounted(true);
   }, []);
 
-  // @ts-ignore
   const { messages, sendMessage, status, setMessages } = useChat({ 
     initialMessages,
     onFinish: () => {
@@ -63,17 +62,23 @@ export default function CopilotPage() {
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.1);
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1760, ctx.currentTime + 0.1);
         gain.gain.setValueAtTime(0, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.05);
+        gain.gain.linearRampToValueAtTime(0.1, ctx.currentTime + 0.05);
         gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.2);
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.2);
       } catch(e) {}
     },
-    onError: (e) => alert("Error API: " + e.message) 
-  });
+    onError: (e: any) => {
+      setMessages((prev: any) => [...prev, {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: "Alamak! Synthia sedang berehat sekejap sebab terlalu banyak soalan. Cuba lagi dalam 30 saat ya! 😅"
+      }]);
+    }
+  } as any);
   const isLoading = status !== 'ready' && status !== 'error';
 
   useEffect(() => {
@@ -385,7 +390,7 @@ export default function CopilotPage() {
                       : 'bg-transparent text-slate-300'
                   }`}>
                     {m.role !== 'user' && <div className="text-xs text-cyan-500 font-bold mb-1 tracking-wider uppercase drop-shadow-[0_0_5px_rgba(6,182,212,0.8)]">Synthia</div>}
-                    <p className="whitespace-pre-wrap leading-relaxed">{m.content || (m.parts && m.parts.map(p => p.text).join("")) || "..."}</p>
+                    <p className="whitespace-pre-wrap leading-relaxed">{(m as any).content || ((m as any).parts && (m as any).parts.map((p:any) => p.text).join("")) || "..."}</p>
                   </div>
 
                   {m.role === 'user' && (

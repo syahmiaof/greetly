@@ -23,9 +23,15 @@ export function CopilotWidget() {
     setMounted(true);
   }, []);
 
-  // @ts-ignore
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, setMessages } = useChat({
     initialMessages,
+    onError: (e: any) => {
+      setMessages((prev: any) => [...prev, {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: "Alamak! Synthia sedang berehat sekejap sebab terlalu banyak soalan. Cuba lagi dalam 30 saat ya! 😅"
+      }]);
+    },
     onFinish: () => {
       // Play sound
       try {
@@ -42,9 +48,9 @@ export function CopilotWidget() {
         gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.2);
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.2);
-      } catch (e) {}
+      } catch(e) {}
     }
-  });
+  } as any);
 
   const isLoading = status !== 'ready' && status !== 'error';
 
@@ -59,7 +65,7 @@ export function CopilotWidget() {
 
   const handleSend = () => {
     if (!myInput.trim() || isLoading) return;
-    sendMessage({ role: 'user', content: myInput });
+    (sendMessage as any)({ role: 'user', content: myInput });
     setMyInput('');
   };
 
@@ -84,7 +90,7 @@ export function CopilotWidget() {
                 <div key={m.id} className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {m.role !== 'user' && <Bot size={14} className="text-cyan-500 mt-1 shrink-0" />}
                   <div className={`p-2 rounded-xl text-sm max-w-[85%] whitespace-pre-wrap ${m.role === 'user' ? 'bg-slate-800 text-slate-200' : 'bg-cyan-950/30 text-slate-300 border border-cyan-500/10'}`}>
-                    {m.content || (m.parts && m.parts.map((p:any) => p.text).join("")) || "..."}
+                    {(m as any).content || ((m as any).parts && (m as any).parts.map((p:any) => p.text).join("")) || "..."}
                   </div>
                 </div>
               ))
