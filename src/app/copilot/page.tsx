@@ -1,4 +1,5 @@
 'use client';
+import React from 'react';
 
 import { useChat } from 'ai/react';
 import { Bot, Send, User, Sparkles, Activity, FileText } from 'lucide-react';
@@ -26,14 +27,14 @@ export default function CopilotPage() {
               
               <div className="flex gap-4 mt-8">
                 <button 
-                  onClick={() => handleInputChange({ target: { value: 'Tunjukkan rumusan kedatangan hari ini.' } } as any)}
+                  onClick={() => handleInputChange({ target: { value: 'Tunjukkan rumusan kedatangan hari ini.' } } as React.ChangeEvent<HTMLInputElement>)}
                   className="bg-slate-800/50 hover:bg-slate-800 p-4 rounded-xl border border-white/5 transition flex items-center gap-3"
                 >
                   <Activity className="text-emerald-400" size={20} />
                   <span className="text-sm">Rumusan Hari Ini</span>
                 </button>
                 <button 
-                  onClick={() => handleInputChange({ target: { value: 'Senaraikan pelajar yang kerap ponteng minggu ini.' } } as any)}
+                  onClick={() => handleInputChange({ target: { value: 'Senaraikan pelajar yang kerap ponteng minggu ini.' } } as React.ChangeEvent<HTMLInputElement>)}
                   className="bg-slate-800/50 hover:bg-slate-800 p-4 rounded-xl border border-white/5 transition flex items-center gap-3"
                 >
                   <FileText className="text-rose-400" size={20} />
@@ -43,18 +44,18 @@ export default function CopilotPage() {
             </div>
           ) : (
             messages.map((m) => (
-              <div key={m.id} className={\`flex gap-4 \${m.role === 'user' ? 'justify-end' : 'justify-start'}\`}>
+              <div key={m.id} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {m.role !== 'user' && (
                   <div className="w-10 h-10 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0">
                     <Bot size={20} className="text-blue-400" />
                   </div>
                 )}
                 
-                <div className={\`max-w-[80%] p-4 rounded-2xl \${
+                <div className={`max-w-[80%] p-4 rounded-2xl ${
                   m.role === 'user' 
                     ? 'bg-blue-600 text-white rounded-tr-sm' 
                     : 'bg-slate-800/80 border border-white/10 text-slate-200 rounded-tl-sm'
-                }\`}>
+                }`}>
                   <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
                 </div>
 
