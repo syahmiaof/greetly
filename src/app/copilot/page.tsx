@@ -10,7 +10,26 @@ export default function CopilotPage() {
   const [mounted, setMounted] = useState(false);
   const [initialMessages, setInitialMessages] = useState<any[]>([]);
 
-  const { metrics, totalStudents } = useAttendance();
+  const { metrics, totalStudents, records } = useAttendance();
+  const [absentList, setAbsentList] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchAbsentees = async () => {
+      const { supabase } = await import('@/lib/supabaseClient');
+      const { data: allStudents } = await supabase.from('students').select('*');
+      if (allStudents && records) {
+        // Filter out anyone who has a record for today (since records from useAttendance includes everyone who scanned)
+        const scannedStudentIds = new Set(
+          records
+            .filter(r => new Date(r.created_at).toDateString() === new Date().toDateString())
+            .map(r => r.student_id)
+        );
+        const absent = allStudents.filter(s => !scannedStudentIds.has(s.student_id));
+        setAbsentList(absent);
+      }
+    };
+    if (records) fetchAbsentees();
+  }, [records]);
 
   useEffect(() => {
     const saved = localStorage.getItem('copilot_messages');
@@ -167,17 +186,34 @@ export default function CopilotPage() {
                   <div className="border border-white/5 rounded-xl bg-slate-800/30 p-4">
                     <h3 className="text-xs text-slate-400 uppercase mb-4 tracking-wider">Watchlist (Absent Today)</h3>
                     <div className="space-y-3">
-                      {Array.from({length: Math.min(metrics?.absentToday || 0, 4)}).map((_, i) => (
-                        <div key={i} className="flex justify-between items-center p-2 rounded bg-slate-900/50 border border-rose-500/10">
-                          <div className="flex items-center gap-3">
-                            <div className="w-6 h-6 rounded-full bg-rose-500/20 flex items-center justify-center text-xs text-rose-400">?</div>
-                            <div className="w-24 h-2 bg-slate-600 rounded"></div>
+                      {absentList.length > 0 ? (
+                        absentList.slice(0, 4).map((student, i) => (
+                          <div key={student.id} className="flex justify-between items-center p-2 rounded bg-slate-900/50 border border-rose-500/10">
+                            <div className="flex items-center gap-3">
+                              <div className="w-6 h-6 rounded-full bg-rose-500/20 flex items-center justify-center text-xs text-rose-400 font-bold">
+                                {student.student_name.charAt(0)}
+                              </div>
+                              <div className="text-sm text-slate-300 font-medium">{student.student_name}</div>
+                            </div>
+                            <div className="text-[10px] text-slate-500">{student.grade_class}</div>
                           </div>
-                          <div className="w-12 h-2 bg-slate-700 rounded"></div>
-                        </div>
-                      ))}
+                        ))
+                      ) : (metrics?.absentToday || 0) > 0 ? (
+                        Array.from({length: Math.min(metrics?.absentToday || 0, 4)}).map((_, i) => (
+                          <div key={i} className="flex justify-between items-center p-2 rounded bg-slate-900/50 border border-rose-500/10">
+                            <div className="flex items-center gap-3">
+                              <div className="w-6 h-6 rounded-full bg-rose-500/20 flex items-center justify-center text-xs text-rose-400">?</div>
+                              <div className="w-24 h-2 bg-slate-600 rounded"></div>
+                            </div>
+                            <div className="w-12 h-2 bg-slate-700 rounded"></div>
+                          </div>
+                        ))
+                      ) : null}
                       {(metrics?.absentToday || 0) === 0 && (
                         <p className="text-xs text-slate-500 text-center py-2">No absentees detected yet.</p>
+                      )}
+                      {absentList.length > 4 && (
+                        <p className="text-[10px] text-slate-500 text-center pt-2 border-t border-white/5">+ {absentList.length - 4} more students</p>
                       )}
                     </div>
                   </div>
