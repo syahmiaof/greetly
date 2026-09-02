@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Space_Grotesk } from 'next/font/google';
+import { Space_Grotesk, Orbitron, Rajdhani } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
 import { CopilotWidget } from '@/components/CopilotWidget';
@@ -7,6 +7,17 @@ import { CopilotWidget } from '@/components/CopilotWidget';
 const spaceGrotesk = Space_Grotesk({
   variable: '--font-space-grotesk',
   subsets: ['latin'],
+});
+
+const orbitron = Orbitron({
+  variable: '--font-orbitron',
+  subsets: ['latin'],
+});
+
+const rajdhani = Rajdhani({
+  variable: '--font-rajdhani',
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
 });
 
 export const metadata: Metadata = {
@@ -20,7 +31,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} h-full antialiased`}>
+    <html lang="en" className={`${spaceGrotesk.variable} ${orbitron.variable} ${rajdhani.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col md:flex-row text-slate-100 bg-transparent relative">
         <Navbar />
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 pb-32 md:pb-8 z-10 w-full">

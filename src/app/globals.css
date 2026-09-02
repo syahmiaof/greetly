@@ -2,6 +2,8 @@
 
 @theme {
   --font-sans: var(--font-space-grotesk), sans-serif;
+  --font-orbitron: var(--font-orbitron), sans-serif;
+  --font-rajdhani: var(--font-rajdhani), sans-serif;
 }
 
 @layer base {
