@@ -67,7 +67,7 @@ export default function CopilotPage() {
               </div>
             </div>
           ) : (
-            {/* DEBUG: console.log("Messages:", messages) */}
+            
             {messages.map((m) => (
               <div key={m.id} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {m.role !== 'user' && (
