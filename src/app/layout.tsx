@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import { Navbar } from '@/components/Navbar';
+import Script from 'next/script';
 
 const spaceGrotesk = Space_Grotesk({
   variable: '--font-space-grotesk',
@@ -19,15 +20,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} h-full antialiased`}>
+    <html lang="en" suppressHydrationWarning className={\\ h-full antialiased\}>
       <head>
-        <script dangerouslySetInnerHTML={{
-          __html: `
+        <Script id="theme-script" strategy="beforeInteractive" dangerouslySetInnerHTML={{
+          __html: \
             try {
               let theme = localStorage.getItem('app-theme') || 'startup';
               document.documentElement.setAttribute('data-theme', theme);
             } catch (e) {}
-          `
+          \
         }} />
       </head>
       <body className="min-h-full flex flex-col md:flex-row text-slate-100 bg-transparent relative">
@@ -39,3 +40,4 @@ export default function RootLayout({
     </html>
   );
 }
+
