@@ -67,7 +67,8 @@ export default function CopilotPage() {
               </div>
             </div>
           ) : (
-            messages.map((m) => (
+            {/* DEBUG: console.log("Messages:", messages) */}
+            {messages.map((m) => (
               <div key={m.id} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {m.role !== 'user' && (
                   <div className="w-10 h-10 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0">
@@ -80,7 +81,7 @@ export default function CopilotPage() {
                     ? 'bg-blue-600 text-white rounded-tr-sm' 
                     : 'bg-slate-800/80 border border-white/10 text-slate-200 rounded-tl-sm'
                 }`}>
-                  <p className="whitespace-pre-wrap leading-relaxed">{m.content}</p>
+                  <p className="whitespace-pre-wrap leading-relaxed">{m.content || (m.parts && m.parts.map(p => p.text).join("")) || "..."}</p>
                 </div>
 
                 {m.role === 'user' && (
