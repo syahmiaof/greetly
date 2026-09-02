@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { LayoutDashboard, History, Users, Settings, FileText, Cpu, Home } from 'lucide-react';
-import { Sparkles } from 'lucide-react';
+import { Bot } from 'lucide-react';
 
 export function Navbar() {
   const pathname = usePathname();
@@ -36,7 +36,7 @@ export function Navbar() {
     { name: 'Records', path: '/records', icon: History },
     { name: 'Students', path: '/students', icon: Users },
     { name: 'Hardware', path: '/hardware', icon: Cpu },
-    { name: 'Copilot', path: '/copilot', icon: Sparkles },
+    { name: 'Copilot', path: '/copilot', icon: Bot },
     { name: 'Settings', path: '/settings', icon: Settings },
   ];
 
