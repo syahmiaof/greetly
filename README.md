@@ -333,24 +333,30 @@ To create the 3D 'exploded-view' animation of the Greetly hardware for the landi
 2. Generate a 5-second video using the prompt above.
 3. Convert the resulting .mp4 into an image sequence.
 4. Extract **150 to 250 frames** to ensure a high frame-rate scroll experience.
-5. Replace the files in public/greetly.web/ezgif-6d4320075cf41310-jpg with the new frames and update the rameCount in index.html accordingly.
+5. Replace the files in public/greetly.web/ezgif-6d4320075cf41310-jpg with the new frames and update the \frameCount in index.html accordingly.
 
+---
 
- 
- # #   1 2 .   >ØÝ  A I   C o p i l o t   ( S y n t h i a )   &   G e m i n i   A P I   L i m i t s 
- 
- T h e   * * G r e e t l y   C o p i l o t   ( S y n t h i a ) * *   i s   i n t e g r a t e d   u s i n g   t h e   V e r c e l   A I   S D K   a n d   G o o g l e   G e m i n i   A P I   ( ` g e m i n i - 3 . 5 - f l a s h ` ) .   I t   a c t s   a s   a n   i n t e l l i g e n t   a s s i s t a n t   c a p a b l e   o f   q u e r y i n g   t h e   S u p a b a s e   d a t a b a s e   a n d   u n d e r s t a n d i n g   h a r d w a r e   m e t r i c s   i n   r e a l - t i m e . 
- 
- # # #   G e m i n i   A P I   F r e e   T i e r   R e s t r i c t i o n s 
- I f   y o u   a r e   u s i n g   t h e   G o o g l e   G e m i n i   A P I   * * F r e e   T i e r * * ,   p l e a s e   b e   a w a r e   o f   t h e   f o l l o w i n g   s t r i c t   r a t e   l i m i t s : 
- -   * * 1 5   R e q u e s t s   P e r   M i n u t e   ( R P M ) * * 
- -   * * 1   M i l l i o n   T o k e n s   P e r   M i n u t e   ( T P M ) * * 
- -   * * 1 , 5 0 0   R e q u e s t s   P e r   D a y   ( R P D ) * * 
- 
- I f   y o u   e x c e e d   1 5   q u e s t i o n s   w i t h i n   a   s i n g l e   m i n u t e ,   t h e   A P I   w i l l   r e t u r n   a   * * 4 2 9   T o o   M a n y   R e q u e s t s * *   e r r o r .   T h e   V e r c e l   A I   S D K   h a n d l e s   t h i s   b y   a b o r t i n g   t h e   s t r e a m .   
- O u r   f r o n t e n d   g r a c e f u l l y   c a t c h e s   t h i s   e r r o r   a n d   d i s p l a y s   a   c u s t o m   f a l l b a c k   m e s s a g e :   * " A l a m a k !   S y n t h i a   s e d a n g   b e r e h a t   s e k e j a p   s e b a b   t e r l a l u   b a n y a k   s o a l a n .   C u b a   l a g i   d a l a m   3 0   s a a t   y a ! " * 
- 
- # # #   H o w   t o   r e s o l v e   R a t e   L i m i t s : 
- 1 .   * * W a i t * * :   T h e   l i m i t   o p e r a t e s   o n   a   r o l l i n g   w i n d o w .   Y o u   o n l y   n e e d   t o   w a i t   a b o u t   * * 3 0   t o   6 0   s e c o n d s * *   b e f o r e   y o u   c a n   a s k   q u e s t i o n s   a g a i n . 
- 2 .   * * U p g r a d e * * :   I f   G r e e t l y   i s   d e p l o y e d   t o   a   s c h o o l   w i t h   h e a v y   t r a f f i c ,   y o u   m u s t   u p g r a d e   t o   t h e   * * P a y - a s - y o u - g o   T i e r * *   i n   G o o g l e   A I   S t u d i o ,   w h i c h   r a i s e s   t h e   l i m i t   t o   * * 1 , 0 0 0   R P M * * .  
- 
+## 12. ðŸ¤– AI Copilot (Synthia) & Gemini API Limits
+
+The **Greetly Copilot (Synthia)** is integrated using the Vercel AI SDK and Google Gemini API (`gemini-3.5-flash`). It acts as an intelligent assistant capable of querying the Supabase database and understanding hardware metrics in real-time.
+
+### Gemini API Free Tier Restrictions
+
+If you are using the Google Gemini API **Free Tier**, please be aware of the following strict rate limits:
+
+| Limit Type | Free Tier | Pay-as-you-go |
+|---|---|---|
+| Requests Per Minute (RPM) | 15 | 1,000 |
+| Tokens Per Minute (TPM) | 1,000,000 | 4,000,000 |
+| Requests Per Day (RPD) | 1,500 | Unlimited |
+
+If you exceed 15 questions within a single minute, the API will return a **429 Too Many Requests** error. The Vercel AI SDK handles this by aborting the stream.
+
+Our frontend gracefully catches this error and displays a custom fallback message:
+> *"Alamak! Synthia sedang berehat sekejap sebab terlalu banyak soalan. Cuba lagi dalam 30 saat ya! ðŸ˜…"*
+
+### How to Resolve Rate Limits
+
+1. **Wait**: The limit operates on a rolling window. You only need to wait about **30 to 60 seconds** before you can ask questions again.
+2. **Upgrade**: If Greetly is deployed to a school with heavy traffic, upgrade to the **Pay-as-you-go Tier** in [Google AI Studio](https://aistudio.google.com/), which raises the limit to **1,000 RPM**.
