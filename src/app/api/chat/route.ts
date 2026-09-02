@@ -16,7 +16,7 @@ Sistem ini menggunakan Raspberry Pi untuk Edge AI dan Supabase untuk database.`,
       messages,
     });
 
-    return result.toDataStreamResponse();
+    return result.toUIMessageStreamResponse();
   } catch (error: any) {
     console.error("AI Error:", error);
     return new Response("Ralat memproses AI: " + (error.message || String(error)), { status: 500 });
