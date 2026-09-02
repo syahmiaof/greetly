@@ -44,22 +44,24 @@ export async function POST(req: Request) {
       students.forEach(student => {
         const log = logsMap.get(student.id);
         if (log) {
-          // Parse time to check if late
           const scanTime = new Date(log.timestamp);
-          const threshold = new Date(scanTime);
-          threshold.setHours(7, 30, 0, 0); // Rule: 7:30 AM is the cutoff
+          const thresholdLate = new Date(scanTime);
+          thresholdLate.setHours(8, 0, 0, 0); // 8:00 AM cutoff for Late
+          const thresholdAbsent = new Date(scanTime);
+          thresholdAbsent.setHours(11, 0, 0, 0); // 11:00 AM cutoff for Absent
 
-          const isLate = scanTime > threshold;
-          if (isLate) {
+          if (scanTime > thresholdAbsent) {
+            absentCount++;
+            studentsContext.push(`${student.student_name} (${student.grade_class}) - ABSENT (Scanned too late at ${scanTime.toLocaleTimeString()})`);
+          } else if (scanTime >= thresholdLate) {
             lateCount++;
             studentsContext.push(`${student.student_name} (${student.grade_class}) - LATE (Scanned at ${scanTime.toLocaleTimeString()})`);
           } else {
             presentCount++;
-            // Don't inject all present students to save context space, just keep count
           }
         } else {
           absentCount++;
-          studentsContext.push(`${student.student_name} (${student.grade_class}) - ABSENT`);
+          studentsContext.push(`${student.student_name} (${student.grade_class}) - ABSENT (No record)`);
         }
       });
     }
@@ -67,17 +69,17 @@ export async function POST(req: Request) {
     const dbContext = `
 CURRENT DATABASE CONTEXT (LIVE FROM SUPABASE):
 - Total Students: ${students?.length || 0}
-- Present (Scanned before 7:30 AM): ${presentCount}
-- Late (Scanned after 7:30 AM): ${lateCount}
-- Absent (No scan today): ${absentCount}
+- Present (Scanned before 8:00 AM): ${presentCount}
+- Late (Scanned between 8:00 AM and 11:00 AM): ${lateCount}
+- Absent (Scanned after 11:00 AM or no scan today): ${absentCount}
 
 Detailed List of Absent & Late Students:
 ${studentsContext.join('\n')}
 
 ATTENDANCE RULES:
-- "Hadir" (Present): Student scanned BEFORE 7:30 AM.
-- "Lewat" (Late): Student scanned AFTER 7:30 AM.
-- "Tak Hadir" (Absent): Student has no scan record for the day.
+- "Hadir" (Present): Student scanned BEFORE 8:00 AM.
+- "Lewat" (Late): Student scanned BETWEEN 8:00 AM and 11:00 AM.
+- "Tak Hadir" (Absent): Student scanned AFTER 11:00 AM, or has no scan record for the day.
 `;
 
     const result = await streamText({
