@@ -1,45 +1,33 @@
 'use client';
 
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { AttendanceRecord } from './RealtimeAttendanceTable';
 import { useMemo } from 'react';
 
 type TodayBreakdownChartProps = {
-  records: AttendanceRecord[];
+  metrics: {
+    presentToday: number;
+    absentToday: number;
+    lateArrivals: number;
+    totalStudents: number;
+  };
   loading?: boolean;
 };
 
-export function TodayBreakdownChart({ records, loading }: TodayBreakdownChartProps) {
+export function TodayBreakdownChart({ metrics, loading }: TodayBreakdownChartProps) {
   const data = useMemo(() => {
-    // Filter for today
-    const rawTodayRecords = records.filter(r => new Date(r.created_at).toDateString() === new Date().toDateString());
+    if (!metrics) return [];
     
-    // Deduplicate by student_id (keep the earliest scan for the day)
-    const uniqueStudentsMap = new Map();
-    // Since records are ordered desc (newest first), iterating backwards or just taking the last we see is fine.
-    // Let's just keep the first one we see (which is the newest) or the oldest? 
-    // Actually, usually we care about their first scan of the day.
-    [...rawTodayRecords].reverse().forEach(r => {
-      if (!uniqueStudentsMap.has(r.student_id)) {
-        uniqueStudentsMap.set(r.student_id, r);
-      }
-    });
-    
-    const todayRecords = Array.from(uniqueStudentsMap.values());
-    
-    const present = todayRecords.filter(r => r.status === 'Present').length;
-    const absent = todayRecords.filter(r => r.status === 'Absent').length;
-    const late = todayRecords.filter(r => r.status === 'Late').length;
+    const { presentToday, absentToday, lateArrivals } = metrics;
 
     // If all are 0, return an empty array to render an empty circle or "No Data" gracefully
-    if (present === 0 && absent === 0 && late === 0) return [];
+    if (presentToday === 0 && absentToday === 0 && lateArrivals === 0) return [];
 
     return [
-      { name: 'Present', value: present, color: '#10b981' },
-      { name: 'Late', value: late, color: '#94a3b8' },
-      { name: 'Absent', value: absent, color: '#f43f5e' },
+      { name: 'Present', value: presentToday, color: '#10b981' },
+      { name: 'Late', value: lateArrivals, color: '#94a3b8' },
+      { name: 'Absent', value: absentToday, color: '#f43f5e' },
     ].filter(item => item.value > 0);
-  }, [records]);
+  }, [metrics]);
 
   const total = useMemo(() => data.reduce((acc, curr) => acc + curr.value, 0), [data]);
 

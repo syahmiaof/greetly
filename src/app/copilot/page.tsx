@@ -77,14 +77,15 @@ export default function CopilotPage() {
     }
   };
 
-  // Determine active topic based on the last user message to change infographics
-  const lastUserMessage = messages.filter(m => m.role === 'user').pop()?.content.toLowerCase() || '';
+  // Determine active topic based on the last message in the chat to change infographics
+  const lastMessageContent = messages.length > 0 ? messages[messages.length - 1].content.toLowerCase() : '';
   let activeTopic = 'summary';
-  if (lastUserMessage.includes('absent') || lastUserMessage.includes('ponteng') || lastUserMessage.includes('tidak hadir')) {
+  
+  if (lastMessageContent.includes('absent') || lastMessageContent.includes('ponteng') || lastMessageContent.includes('tidak hadir') || lastMessageContent.includes('missing')) {
     activeTopic = 'absent';
-  } else if (lastUserMessage.includes('hardware') || lastUserMessage.includes('status') || lastUserMessage.includes('kamera') || lastUserMessage.includes('online')) {
+  } else if (lastMessageContent.includes('hardware') || lastMessageContent.includes('status') || lastMessageContent.includes('kamera') || lastMessageContent.includes('online')) {
     activeTopic = 'hardware';
-  } else if (lastUserMessage.includes('late') || lastUserMessage.includes('lewat') || lastUserMessage.includes('lambat')) {
+  } else if (lastMessageContent.includes('late') || lastMessageContent.includes('lewat') || lastMessageContent.includes('lambat')) {
     activeTopic = 'late';
   }
 

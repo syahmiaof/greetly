@@ -149,7 +149,7 @@ export default function DashboardPage() {
       {/* 2 Charts Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 w-full">
         <AttendanceChart records={records} />
-        <TodayBreakdownChart records={records} loading={loading} />
+        <TodayBreakdownChart metrics={metrics} loading={loading} />
       </div>
       
       {/* Full width table */}
