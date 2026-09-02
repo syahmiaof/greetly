@@ -33,12 +33,16 @@ export default function CopilotPage() {
 
   return (
     <div className="p-8 max-w-6xl mx-auto h-[calc(100vh-2rem)] flex flex-col">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold flex items-center gap-3">
-          <Bot className="text-blue-500" />
-          Greetly Copilot
-        </h1>
-        <p className="text-slate-400 mt-2">Pembantu Tadbir Maya berkuasa AI untuk menganalisis data kedatangan.</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div className="text-center md:text-left">
+          <h1 className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 tracking-tight drop-shadow-[0_0_15px_rgba(16,185,129,0.5)] flex items-center justify-center md:justify-start gap-3">
+            <Bot className="text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.8)]" size={32} />
+            Greetly Copilot
+          </h1>
+          <p className="text-emerald-400/60 mt-1 font-medium uppercase tracking-widest text-xs md:text-sm">
+            Pembantu Tadbir Maya berkuasa AI untuk menganalisis data kedatangan.
+          </p>
+        </div>
       </div>
 
       <div className="flex-1 glass-panel flex flex-col overflow-hidden relative">
