@@ -82,8 +82,8 @@ export function CopilotWidget() {
               messages.map(m => (
                 <div key={m.id} className={`flex gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {m.role !== 'user' && <Bot size={14} className="text-cyan-500 mt-1 shrink-0" />}
-                  <div className={`p-2 rounded-xl text-sm max-w-[85%] ${m.role === 'user' ? 'bg-slate-800 text-slate-200' : 'bg-cyan-950/30 text-slate-300 border border-cyan-500/10'}`}>
-                    {m.content}
+                  <div className={`p-2 rounded-xl text-sm max-w-[85%] whitespace-pre-wrap ${m.role === 'user' ? 'bg-slate-800 text-slate-200' : 'bg-cyan-950/30 text-slate-300 border border-cyan-500/10'}`}>
+                    {m.content || (m.parts && m.parts.map((p:any) => p.text).join("")) || "..."}
                   </div>
                 </div>
               ))

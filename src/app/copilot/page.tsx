@@ -78,7 +78,10 @@ export default function CopilotPage() {
   };
 
   // Determine active topic based on the last message in the chat to change infographics
-  const lastMessageContent = messages.length > 0 ? (messages[messages.length - 1]?.content?.toLowerCase() || '') : '';
+  const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+  const lastMessageContent = lastMsg 
+    ? (lastMsg.content || (lastMsg.parts ? lastMsg.parts.map((p:any) => p.text).join("") : "")).toLowerCase() 
+    : '';
   let activeTopic = 'summary';
   
   if (lastMessageContent.includes('absent') || lastMessageContent.includes('ponteng') || lastMessageContent.includes('tidak hadir') || lastMessageContent.includes('missing')) {
