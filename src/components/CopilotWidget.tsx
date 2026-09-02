@@ -70,7 +70,7 @@ export function CopilotWidget() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end">
+    <div className="hidden md:flex fixed bottom-6 right-6 z-50 flex-col items-end">
       {isOpen && (
         <div className="mb-4 w-80 md:w-96 h-[500px] glass-panel rounded-2xl border border-cyan-500/20 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5">
           <div className="p-3 bg-slate-900/80 border-b border-white/5 flex justify-between items-center">
