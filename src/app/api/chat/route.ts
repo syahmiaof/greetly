@@ -1,26 +1,101 @@
 import { streamText } from 'ai';
 import { google } from '@ai-sdk/google';
+import { createClient } from '@supabase/supabase-js';
 
-// Membenarkan strim tindak balas panjang ke klien
+// Setup Supabase Client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
 
+    // 1. Fetch Students
+    const { data: students } = await supabase.from('students').select('id, student_id, student_name, grade_class');
+    
+    // 2. Fetch Today's Attendance Logs
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const { data: logs } = await supabase
+      .from('attendance_logs')
+      .select('student_id, timestamp, status')
+      .gte('timestamp', today.toISOString());
+
+    // 3. Process the data to create a context string
+    let presentCount = 0;
+    let lateCount = 0;
+    let absentCount = 0;
+    let studentsContext = [];
+
+    const logsMap = new Map();
+    if (logs) {
+      logs.forEach(log => {
+        // Keep the earliest log for the day
+        if (!logsMap.has(log.student_id) || new Date(log.timestamp) < new Date(logsMap.get(log.student_id).timestamp)) {
+          logsMap.set(log.student_id, log);
+        }
+      });
+    }
+
+    if (students) {
+      students.forEach(student => {
+        const log = logsMap.get(student.id);
+        if (log) {
+          // Parse time to check if late
+          const scanTime = new Date(log.timestamp);
+          const threshold = new Date(scanTime);
+          threshold.setHours(7, 30, 0, 0); // Rule: 7:30 AM is the cutoff
+
+          const isLate = scanTime > threshold;
+          if (isLate) {
+            lateCount++;
+            studentsContext.push(`${student.student_name} (${student.grade_class}) - LATE (Scanned at ${scanTime.toLocaleTimeString()})`);
+          } else {
+            presentCount++;
+            // Don't inject all present students to save context space, just keep count
+          }
+        } else {
+          absentCount++;
+          studentsContext.push(`${student.student_name} (${student.grade_class}) - ABSENT`);
+        }
+      });
+    }
+
+    const dbContext = `
+CURRENT DATABASE CONTEXT (LIVE FROM SUPABASE):
+- Total Students: ${students?.length || 0}
+- Present (Scanned before 7:30 AM): ${presentCount}
+- Late (Scanned after 7:30 AM): ${lateCount}
+- Absent (No scan today): ${absentCount}
+
+Detailed List of Absent & Late Students:
+${studentsContext.join('\n')}
+
+ATTENDANCE RULES:
+- "Hadir" (Present): Student scanned BEFORE 7:30 AM.
+- "Lewat" (Late): Student scanned AFTER 7:30 AM.
+- "Tak Hadir" (Absent): Student has no scan record for the day.
+`;
+
     const result = await streamText({
-      model: google('gemini-3.5-flash'), // Guna model Gemini 3.5 Flash terkini
+      model: google('gemini-3.5-flash'),
       system: `You are 'Greetly Copilot', a smart AI assistant for the Greetly IoT Facial Recognition Attendance System.
 Your task is to help teachers and school administrators manage attendance, view statistics, and answer their questions professionally, concisely, and politely in English.
 This system uses a Raspberry Pi for Edge AI and Supabase for the database.
-CRITICAL INSTRUCTION: DO NOT use any Markdown formatting (no asterisks **, no hashes ###, no bold, no lists). ONLY use plain text and friendly emojis. Write in a conversational, friendly, and plain text manner.`,
+
+${dbContext}
+
+CRITICAL INSTRUCTION: DO NOT use any Markdown formatting (no asterisks **, no hashes ###, no bold, no lists). ONLY use plain text and friendly emojis. Write in a conversational, friendly, and plain text manner.
+If asked about absentees or latecomers, read the CURRENT DATABASE CONTEXT to answer accurately. Never make up names.`,
       messages,
     });
 
     return result.toUIMessageStreamResponse();
   } catch (error: any) {
     console.error("AI Error:", error);
-    require('fs').writeFileSync('AI_ERROR_LOG.txt', String(error.stack || error));
     return new Response("Ralat memproses AI: " + (error.message || String(error)), { status: 500 });
   }
 }
