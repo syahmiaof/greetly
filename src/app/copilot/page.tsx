@@ -93,7 +93,7 @@ export default function CopilotPage() {
             />
             <button
               type="submit"
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || (!input || !input.trim())}
               className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 rounded-xl transition flex items-center justify-center"
             >
               <Send size={20} />
