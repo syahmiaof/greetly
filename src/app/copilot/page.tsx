@@ -1,7 +1,7 @@
 'use client';
 import React from 'react';
 
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { Bot, Send, User, Sparkles, Activity, FileText } from 'lucide-react';
 
 export default function CopilotPage() {
