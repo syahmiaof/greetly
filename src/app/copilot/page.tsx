@@ -78,7 +78,7 @@ export default function CopilotPage() {
   };
 
   // Determine active topic based on the last message in the chat to change infographics
-  const lastMessageContent = messages.length > 0 ? messages[messages.length - 1].content.toLowerCase() : '';
+  const lastMessageContent = messages.length > 0 ? (messages[messages.length - 1]?.content?.toLowerCase() || '') : '';
   let activeTopic = 'summary';
   
   if (lastMessageContent.includes('absent') || lastMessageContent.includes('ponteng') || lastMessageContent.includes('tidak hadir') || lastMessageContent.includes('missing')) {
