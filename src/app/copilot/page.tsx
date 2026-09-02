@@ -40,7 +40,7 @@ export default function CopilotPage() {
             Greetly Copilot
           </h1>
           <p className="text-emerald-400/60 mt-1 font-medium uppercase tracking-widest text-xs md:text-sm">
-            Pembantu Tadbir Maya berkuasa AI untuk menganalisis data kedatangan.
+            AI-powered Virtual Administrative Assistant for attendance data analysis.
           </p>
         </div>
       </div>
@@ -49,24 +49,38 @@ export default function CopilotPage() {
         {/* Chat History */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-slate-500 space-y-4">
-              <Bot size={48} className="text-slate-600 opacity-50" />
-              <p>Mula bersembang dengan Copilot atau pilih soalan cadangan di bawah.</p>
+            <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-4">
+              <Bot size={48} className="opacity-20" />
+              <p>Start chatting with Copilot or choose a suggested prompt below.</p>
               
-              <div className="flex gap-4 mt-8">
+              <div className="flex flex-wrap gap-3 mt-8 justify-center">
                 <button 
-                  onClick={() => sendSuggestion('Tunjukkan rumusan kedatangan hari ini.')}
-                  className="bg-slate-800/50 hover:bg-slate-800 p-4 rounded-xl border border-white/5 transition flex items-center gap-3"
+                  onClick={() => sendSuggestion("Generate a summary of today's attendance.")}
+                  className="px-4 py-2 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 border border-white/5 transition flex items-center gap-2"
                 >
-                  <Activity className="text-emerald-400" size={20} />
-                  <span className="text-sm">Rumusan Hari Ini</span>
+                  <Activity size={16} className="text-emerald-400" />
+                  <span className="text-sm">Today's Summary</span>
                 </button>
                 <button 
-                  onClick={() => sendSuggestion('Senaraikan pelajar yang kerap ponteng minggu ini.')}
-                  className="bg-slate-800/50 hover:bg-slate-800 p-4 rounded-xl border border-white/5 transition flex items-center gap-3"
+                  onClick={() => sendSuggestion("List all students who are absent today.")}
+                  className="px-4 py-2 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 border border-white/5 transition flex items-center gap-2"
                 >
-                  <FileText className="text-rose-400" size={20} />
-                  <span className="text-sm">Laporan Ponteng</span>
+                  <FileText size={16} className="text-rose-400" />
+                  <span className="text-sm">Absentee Report</span>
+                </button>
+                <button 
+                  onClick={() => sendSuggestion("Which students have been frequently late this month?")}
+                  className="px-4 py-2 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 border border-white/5 transition flex items-center gap-2"
+                >
+                  <Clock size={16} className="text-amber-400" />
+                  <span className="text-sm">Late Analysis</span>
+                </button>
+                <button 
+                  onClick={() => sendSuggestion("Is the hardware currently online and running?")}
+                  className="px-4 py-2 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 border border-white/5 transition flex items-center gap-2"
+                >
+                  <Cpu size={16} className="text-cyan-400" />
+                  <span className="text-sm">Hardware Status</span>
                 </button>
               </div>
             </div>
@@ -88,8 +102,8 @@ export default function CopilotPage() {
                 </div>
 
                 {m.role === 'user' && (
-                  <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
-                    <User size={20} className="text-slate-300" />
+                  <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center shrink-0">
+                    <User size={20} className="text-slate-400" />
                   </div>
                 )}
               </div>
@@ -97,50 +111,46 @@ export default function CopilotPage() {
           )}
           {isLoading && (
             <div className="flex gap-4 justify-start">
-              <div className="w-10 h-10 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0">
-                <Bot size={20} className="text-blue-400" />
-              </div>
-              <div className="bg-slate-800/80 border border-white/10 p-4 rounded-2xl rounded-tl-sm flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }} />
-              </div>
+               <div className="w-10 h-10 rounded-full bg-blue-600/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+                  <Bot size={20} className="text-blue-400" />
+               </div>
+               <div className="bg-slate-800/80 border border-white/10 text-slate-200 rounded-2xl rounded-tl-sm p-4 flex items-center gap-2">
+                 <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                 <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                 <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce" style={{ animationDelay: '300ms' }}></div>
+               </div>
             </div>
           )}
         </div>
 
         {/* Input Area */}
-        <div className="p-4 bg-slate-900/50 border-t border-white/5">
-          <div className="flex gap-3 relative">
+        <div className="p-4 border-t border-white/5 bg-slate-900/50">
+          <div className="relative">
             <input
-              className="flex-1 bg-slate-800 border border-white/10 rounded-xl px-6 py-4 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-slate-400 transition"
+              type="text"
               value={myInput}
               onChange={(e) => setMyInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
+                if (e.key === 'Enter') {
                   e.preventDefault();
                   handleSend();
                 }
               }}
-              placeholder="Tanya Greetly Copilot sesuatu..."
+              placeholder="Ask Greetly Copilot anything..."
+              className="w-full bg-slate-800 border border-white/10 rounded-xl pl-4 pr-12 py-4 focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-slate-200 placeholder:text-slate-500"
               disabled={isLoading}
             />
             <button
-              onClick={(e) => {
-                e.preventDefault();
-                handleSend();
-              }}
-              disabled={isLoading || myInput.trim() === ''}
-              className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 rounded-xl transition flex items-center justify-center"
+              onClick={handleSend}
+              disabled={isLoading || !myInput.trim()}
+              className="absolute right-2 top-2 p-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-white disabled:opacity-50 transition-colors"
             >
               <Send size={20} />
             </button>
           </div>
-          <div className="text-center mt-3">
-            <span className="text-xs text-slate-500">
-              Copilot boleh melakukan kesilapan. Sila semak maklumat yang penting.
-            </span>
-          </div>
+          <p className="text-center text-[10px] text-slate-500 mt-3">
+            Copilot can make mistakes. Please verify important information.
+          </p>
         </div>
       </div>
     </div>
