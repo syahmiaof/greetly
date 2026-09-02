@@ -11,7 +11,7 @@ export default function CopilotPage() {
     <div className="p-8 max-w-6xl mx-auto h-[calc(100vh-2rem)] flex flex-col">
       <div className="mb-6">
         <h1 className="text-3xl font-bold flex items-center gap-3">
-          <Sparkles className="text-blue-500" />
+          <Bot className="text-blue-500" />
           Greetly Copilot
         </h1>
         <p className="text-slate-400 mt-2">Pembantu Tadbir Maya berkuasa AI untuk menganalisis data kedatangan.</p>
@@ -83,22 +83,35 @@ export default function CopilotPage() {
 
         {/* Input Area */}
         <div className="p-4 bg-slate-900/50 border-t border-white/5">
-          <form onSubmit={(e) => { e.preventDefault(); if (!input.trim()) return; append({ role: "user", content: input }); setInput(""); }} className="flex gap-3 relative">
+          <div className="flex gap-3 relative">
             <input
               className="flex-1 bg-slate-800 border border-white/10 rounded-xl px-6 py-4 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-slate-400 transition"
               value={input}
               onChange={handleInputChange}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  if (input && input.trim() !== '') {
+                    try { append({ role: 'user', content: input }); setInput(''); } catch (err: any) { alert(err.message); }
+                  }
+                }
+              }}
               placeholder="Tanya Greetly Copilot sesuatu..."
               disabled={isLoading}
             />
             <button
-              type="submit"
+              onClick={(e) => {
+                e.preventDefault();
+                if (input && input.trim() !== '') {
+                  try { append({ role: 'user', content: input }); setInput(''); } catch (err: any) { alert(err.message); }
+                }
+              }}
               disabled={isLoading || (!input || !input.trim())}
               className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 rounded-xl transition flex items-center justify-center"
             >
               <Send size={20} />
             </button>
-          </form>
+          </div>
           <div className="text-center mt-3">
             <span className="text-xs text-slate-500">
               Copilot boleh melakukan kesilapan. Sila semak maklumat yang penting.
