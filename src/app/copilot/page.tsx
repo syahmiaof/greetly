@@ -92,7 +92,7 @@ export default function CopilotPage() {
     const text = myInput;
     setMyInput('');
     try {
-      sendMessage({ role: 'user', content: text });
+      sendMessage({ role: 'user', content: text } as any);
     } catch (err: any) {
       alert("Gagal menghantar: " + err.message);
     }
@@ -101,7 +101,7 @@ export default function CopilotPage() {
   const sendSuggestion = (text: string) => {
     if (isLoading) return;
     try {
-      sendMessage({ role: 'user', content: text });
+      sendMessage({ role: 'user', content: text } as any);
     } catch (err: any) {
       alert("Gagal menghantar cadangan: " + err.message);
     }
@@ -110,7 +110,7 @@ export default function CopilotPage() {
   // Determine active topic based on the last message in the chat to change infographics
   // Determine active topic based on the LAST USER MESSAGE to prevent brittle switching based on AI's output
   const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
-  const lastUserContent = lastUserMsg ? lastUserMsg.content.toLowerCase() : '';
+  const lastUserContent = lastUserMsg ? (lastUserMsg as any).content.toLowerCase() : '';
   let activeTopic = 'summary';
   
   if (lastUserContent.includes('absent') || lastUserContent.includes('ponteng') || lastUserContent.includes('tidak hadir') || lastUserContent.includes('missing')) {
