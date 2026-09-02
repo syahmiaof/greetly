@@ -58,6 +58,7 @@ export async function POST(req: Request) {
             studentsContext.push(`${student.student_name} (${student.grade_class}) - LATE (Scanned at ${scanTime.toLocaleTimeString()})`);
           } else {
             presentCount++;
+            studentsContext.push(`${student.student_name} (${student.grade_class}) - PRESENT (Scanned at ${scanTime.toLocaleTimeString()})`);
           }
         } else {
           absentCount++;
@@ -73,7 +74,7 @@ CURRENT DATABASE CONTEXT (LIVE FROM SUPABASE):
 - Late (Scanned between 8:00 AM and 11:00 AM): ${lateCount}
 - Absent (Scanned after 11:00 AM or no scan today): ${absentCount}
 
-Detailed List of Absent & Late Students:
+Detailed List of All Students (Present, Late, Absent):
 ${studentsContext.join('\n')}
 
 ATTENDANCE RULES:
@@ -81,6 +82,11 @@ ATTENDANCE RULES:
 - "Lewat" (Late): Student scanned BETWEEN 8:00 AM and 11:00 AM.
 - "Tak Hadir" (Absent): Student scanned AFTER 11:00 AM, or has no scan record for the day.
 `;
+
+    const sanitizedMessages = messages.map((m: any) => ({
+      ...m,
+      content: m.content || (m.parts ? m.parts.map((p: any) => p.text).join("") : "")
+    }));
 
     const result = await streamText({
       model: google('gemini-3.5-flash'),
@@ -93,7 +99,7 @@ ${dbContext}
 
 CRITICAL INSTRUCTION: DO NOT use any Markdown formatting (no asterisks **, no hashes ###, no bold, no lists). ONLY use plain text and friendly emojis. Write in a conversational, friendly, and plain text manner.
 If asked about absentees or latecomers, read the CURRENT DATABASE CONTEXT to answer accurately. Never make up names.`,
-      messages,
+      messages: sanitizedMessages,
     });
 
     return result.toUIMessageStreamResponse();
