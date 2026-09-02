@@ -90,7 +90,7 @@ export default function CopilotPage() {
               onChange={handleInputChange}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
+                  e.preventDefault(); alert("Butang ditekan! Input: " + input);
                   if (input && input.trim() !== '') {
                     try { append({ role: 'user', content: input }); setInput(''); } catch (err: any) { alert(err.message); }
                   }
@@ -101,7 +101,7 @@ export default function CopilotPage() {
             />
             <button
               onClick={(e) => {
-                e.preventDefault();
+                e.preventDefault(); alert("Butang ditekan! Input: " + input);
                 if (input && input.trim() !== '') {
                   try { append({ role: 'user', content: input }); setInput(''); } catch (err: any) { alert(err.message); }
                 }
