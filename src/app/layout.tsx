@@ -20,15 +20,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className={\\ h-full antialiased\}>
+    <html lang="en" suppressHydrationWarning className={`${spaceGrotesk.variable} h-full antialiased`}>
       <head>
         <Script id="theme-script" strategy="beforeInteractive" dangerouslySetInnerHTML={{
-          __html: \
+          __html: `
             try {
               let theme = localStorage.getItem('app-theme') || 'startup';
               document.documentElement.setAttribute('data-theme', theme);
             } catch (e) {}
-          \
+          `
         }} />
       </head>
       <body className="min-h-full flex flex-col md:flex-row text-slate-100 bg-transparent relative">
@@ -40,4 +40,3 @@ export default function RootLayout({
     </html>
   );
 }
-
