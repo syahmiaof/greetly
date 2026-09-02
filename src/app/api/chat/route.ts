@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     const { messages } = await req.json();
 
     const result = await streamText({
-      model: google('gemini-1.5-flash'), // Guna model Gemini 1.5 Flash yang stabil
+      model: google('gemini-3.5-flash'), // Guna model Gemini 3.5 Flash terkini
       system: `You are 'Greetly Copilot', a smart AI assistant for the Greetly IoT Facial Recognition Attendance System.
 Your task is to help teachers and school administrators manage attendance, view statistics, and answer their questions professionally, concisely, and politely in English.
 This system uses a Raspberry Pi for Edge AI and Supabase for the database.
