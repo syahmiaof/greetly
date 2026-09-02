@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     const { messages } = await req.json();
 
     const result = await streamText({
-      model: google('gemini-1.5-flash'), // Guna model Gemini yang sangat pantas
+      model: google('gemini-3.5-flash'), // Guna model Gemini 3.5 Flash terkini
       system: `Anda adalah 'Greetly Copilot', seorang pembantu AI pintar untuk Sistem Kedatangan Pengecaman Wajah IoT (Greetly).
 Tugas anda adalah untuk membantu guru dan pentadbir sekolah menguruskan kedatangan, melihat statistik, dan menjawab persoalan mereka dengan profesional, ringkas, dan sopan dalam Bahasa Melayu.
 Sistem ini menggunakan Raspberry Pi untuk Edge AI dan Supabase untuk database.`,
@@ -19,6 +19,7 @@ Sistem ini menggunakan Raspberry Pi untuk Edge AI dan Supabase untuk database.`,
     return result.toUIMessageStreamResponse();
   } catch (error: any) {
     console.error("AI Error:", error);
+    require('fs').writeFileSync('AI_ERROR_LOG.txt', String(error.stack || error));
     return new Response("Ralat memproses AI: " + (error.message || String(error)), { status: 500 });
   }
 }
