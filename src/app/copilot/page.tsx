@@ -5,7 +5,7 @@ import { useChat } from '@ai-sdk/react';
 import { Bot, Send, User, Sparkles, Activity, FileText } from 'lucide-react';
 
 export default function CopilotPage() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({ onError: (e) => alert("Error: " + e.message) });
+  const { messages, input, handleInputChange, setInput, append, isLoading, error } = useChat({ onError: (e) => alert("Error: " + e.message) });
 
   return (
     <div className="p-8 max-w-6xl mx-auto h-[calc(100vh-2rem)] flex flex-col">
@@ -83,7 +83,7 @@ export default function CopilotPage() {
 
         {/* Input Area */}
         <div className="p-4 bg-slate-900/50 border-t border-white/5">
-          <form onSubmit={(e) => { e.preventDefault(); console.log("Submitting:", input); handleSubmit(e); }} className="flex gap-3 relative">
+          <form onSubmit={(e) => { e.preventDefault(); if (!input.trim()) return; append({ role: "user", content: input }); setInput(""); }} className="flex gap-3 relative">
             <input
               className="flex-1 bg-slate-800 border border-white/10 rounded-xl px-6 py-4 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white placeholder-slate-400 transition"
               value={input}
