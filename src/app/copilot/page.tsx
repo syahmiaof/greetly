@@ -262,11 +262,14 @@ export default function CopilotPage() {
                       <AlertTriangle size={14} /> Tardy Heatmap
                     </h3>
                     <div className="grid grid-cols-5 gap-2 h-32">
-                       {Array.from({length: 25}).map((_, i) => (
-                         <div key={i} className={`rounded-sm ${Math.random() > 0.7 ? 'bg-amber-500/80 animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-slate-800/50'}`}></div>
-                       ))}
+                       {Array.from({length: 25}).map((_, i) => {
+                         const isHighlighted = [3, 7, 12, 14, 18, 21].includes(i);
+                         return (
+                           <div key={i} className={`rounded-sm ${isHighlighted ? 'bg-amber-500/80 animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-slate-800/50'}`}></div>
+                         );
+                       })}
                     </div>
-                    <p className="text-[10px] text-amber-500/60 mt-4 text-center">Peak late times detected between 7:30 AM - 7:45 AM</p>
+                    <p className="text-[10px] text-amber-500/60 mt-4 text-center">Peak late times detected between 8:00 AM - 8:30 AM</p>
                   </div>
                 </div>
               )}
