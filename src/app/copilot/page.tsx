@@ -6,16 +6,17 @@ import { Bot, Send, User, Activity, FileText } from 'lucide-react';
 
 export default function CopilotPage() {
   const [myInput, setMyInput] = useState('');
-  const { messages, append, isLoading } = useChat({ 
+  const { messages, sendMessage, status } = useChat({ 
     onError: (e) => alert("Error API: " + e.message) 
   });
+  const isLoading = status !== 'ready' && status !== 'error';
 
   const handleSend = () => {
     if (!myInput.trim() || isLoading) return;
     const text = myInput;
     setMyInput(''); // Kosongkan kotak teks
     try {
-      append({ role: 'user', content: text });
+      sendMessage({ role: 'user', content: text });
     } catch (err: any) {
       alert("Gagal menghantar: " + err.message);
     }
@@ -24,7 +25,7 @@ export default function CopilotPage() {
   const sendSuggestion = (text: string) => {
     if (isLoading) return;
     try {
-      append({ role: 'user', content: text });
+      sendMessage({ role: 'user', content: text });
     } catch (err: any) {
       alert("Gagal menghantar cadangan: " + err.message);
     }
