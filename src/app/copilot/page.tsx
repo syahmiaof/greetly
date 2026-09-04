@@ -53,6 +53,7 @@ export default function CopilotPage() {
 
   const { messages, sendMessage, status, setMessages } = useChat({ 
     initialMessages,
+    fetchOptions: { credentials: 'include' },
     onFinish: () => {
       // Play high-tech notification sound
       try {

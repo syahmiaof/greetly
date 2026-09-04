@@ -25,6 +25,7 @@ export function CopilotWidget() {
 
   const { messages, sendMessage, status, setMessages } = useChat({
     initialMessages,
+    fetchOptions: { credentials: 'include' },
     onError: (e: any) => {
       let errorMsg = "Alamak! Synthia sedang mengalami masalah teknikal. Sila cuba lagi sebentar. 🔧";
       try {

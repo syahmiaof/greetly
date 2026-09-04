@@ -39,7 +39,8 @@ export async function updateSession(request: NextRequest) {
   const isPublicRoute = 
     request.nextUrl.pathname === '/login' || 
     request.nextUrl.pathname === '/' ||
-    request.nextUrl.pathname.startsWith('/greetly.web')
+    request.nextUrl.pathname.startsWith('/greetly.web') ||
+    request.nextUrl.pathname.startsWith('/api/')
 
   const isProtectedRoute = !isPublicRoute
 
