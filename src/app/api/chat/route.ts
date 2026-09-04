@@ -134,15 +134,10 @@ If asked about absentees or latecomers, read the CURRENT DATABASE CONTEXT to ans
           console.error("Fallback model also failed:", fallbackError.message);
           
           // Both models exhausted — return friendly chat message as 500 error
+          // Both models exhausted — return friendly chat message as 429 error
           return new Response(
-            JSON.stringify({
-              role: 'assistant',
-              content: 'Synthia tengah berehat sekejap sebab terlalu banyak permintaan hari ini. Quota harian API (1,500 request/hari) mungkin dah habis. Cuba lagi esok ya, atau minta admin upgrade ke pelan berbayar di Google AI Studio! 😊'
-            }),
-            { 
-              status: 500, 
-              headers: { 'Content-Type': 'application/json' } 
-            }
+            'Synthia tengah berehat sekejap sebab terlalu banyak permintaan hari ini. Quota harian API (1,500 request/hari) mungkin dah habis. Cuba lagi esok ya, atau minta admin upgrade ke pelan berbayar di Google AI Studio! 😊',
+            { status: 429 }
           );
         }
       }
@@ -154,14 +149,8 @@ If asked about absentees or latecomers, read the CURRENT DATABASE CONTEXT to ans
     console.error("AI Error:", error);
     
     return new Response(
-      JSON.stringify({
-        role: 'assistant',
-        content: 'Maaf, Synthia mengalami masalah teknikal. Sila cuba lagi sebentar. 🔧'
-      }),
-      { 
-        status: 500, 
-        headers: { 'Content-Type': 'application/json' } 
-      }
+      'Maaf, Synthia mengalami masalah teknikal. Sila cuba lagi sebentar. 🔧\n\nRalat: ' + error.message,
+      { status: 400 }
     );
   }
 }

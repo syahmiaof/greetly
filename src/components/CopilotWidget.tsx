@@ -31,7 +31,7 @@ export function CopilotWidget() {
         const parsed = JSON.parse(e.message);
         if (parsed.content) errorMsg = parsed.content;
       } catch(err) {
-        if (e.message) errorMsg = "Ralat: " + e.message;
+        if (e.message) errorMsg = e.message;
       }
       setMessages((prev: any) => [...prev, {
         id: Date.now().toString(),
