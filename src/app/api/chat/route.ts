@@ -10,8 +10,8 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export const maxDuration = 30;
 
 // Primary and fallback models
-const PRIMARY_MODEL = 'gemini-2.5-flash';
-const FALLBACK_MODEL = 'gemini-2.5-flash-lite';
+const PRIMARY_MODEL = 'gemini-3.6-flash';
+const FALLBACK_MODEL = 'gemini-3.5-flash-lite';
 
 export async function POST(req: Request) {
   try {
