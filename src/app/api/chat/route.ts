@@ -133,14 +133,14 @@ If asked about absentees or latecomers, read the CURRENT DATABASE CONTEXT to ans
         } catch (fallbackError: any) {
           console.error("Fallback model also failed:", fallbackError.message);
           
-          // Both models exhausted — return friendly chat message
+          // Both models exhausted — return friendly chat message as 500 error
           return new Response(
             JSON.stringify({
               role: 'assistant',
               content: 'Synthia tengah berehat sekejap sebab terlalu banyak permintaan hari ini. Quota harian API (1,500 request/hari) mungkin dah habis. Cuba lagi esok ya, atau minta admin upgrade ke pelan berbayar di Google AI Studio! 😊'
             }),
             { 
-              status: 200, 
+              status: 500, 
               headers: { 'Content-Type': 'application/json' } 
             }
           );
@@ -159,7 +159,7 @@ If asked about absentees or latecomers, read the CURRENT DATABASE CONTEXT to ans
         content: 'Maaf, Synthia mengalami masalah teknikal. Sila cuba lagi sebentar. 🔧'
       }),
       { 
-        status: 200, 
+        status: 500, 
         headers: { 'Content-Type': 'application/json' } 
       }
     );

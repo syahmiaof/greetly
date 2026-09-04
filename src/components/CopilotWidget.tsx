@@ -26,10 +26,17 @@ export function CopilotWidget() {
   const { messages, sendMessage, status, setMessages } = useChat({
     initialMessages,
     onError: (e: any) => {
+      let errorMsg = "Alamak! Synthia sedang mengalami masalah teknikal. Sila cuba lagi sebentar. 🔧";
+      try {
+        const parsed = JSON.parse(e.message);
+        if (parsed.content) errorMsg = parsed.content;
+      } catch(err) {
+        if (e.message) errorMsg = "Ralat: " + e.message;
+      }
       setMessages((prev: any) => [...prev, {
         id: Date.now().toString(),
         role: 'assistant',
-        content: "Alamak! Synthia sedang berehat sekejap sebab terlalu banyak soalan. Cuba lagi dalam 30 saat ya! 😅"
+        content: errorMsg
       }]);
     },
     onFinish: () => {

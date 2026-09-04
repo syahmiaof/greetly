@@ -72,10 +72,19 @@ export default function CopilotPage() {
       } catch(e) {}
     },
     onError: (e: any) => {
+      // Parse the error message if it's JSON from our backend
+      let errorMsg = "Alamak! Synthia sedang mengalami masalah teknikal. Sila cuba lagi sebentar. 🔧";
+      try {
+        const parsed = JSON.parse(e.message);
+        if (parsed.content) errorMsg = parsed.content;
+      } catch(err) {
+        if (e.message) errorMsg = "Ralat: " + e.message;
+      }
+      
       setMessages((prev: any) => [...prev, {
         id: Date.now().toString(),
         role: 'assistant',
-        content: "Alamak! Synthia sedang berehat sekejap sebab terlalu banyak soalan. Cuba lagi dalam 30 saat ya! 😅"
+        content: errorMsg
       }]);
     }
   } as any);
