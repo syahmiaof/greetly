@@ -2,19 +2,20 @@ import { streamText } from 'ai';
 import { google } from '@ai-sdk/google';
 import { createClient } from '@supabase/supabase-js';
 
-// Setup Supabase Client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 export const maxDuration = 30;
-
-// Primary and fallback models
 const PRIMARY_MODEL = 'gemini-3.6-flash';
 const FALLBACK_MODEL = 'gemini-3.5-flash-lite';
 
 export async function POST(req: Request) {
   try {
+    // Setup Supabase Client inside handler to catch any initialization errors
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error("Missing Supabase environment variables on Vercel.");
+    }
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const { messages } = await req.json();
 
     // 1. Fetch Students
@@ -134,9 +135,10 @@ If asked about absentees or latecomers, read the CURRENT DATABASE CONTEXT to ans
           console.error("Fallback model also failed:", fallbackError.message);
           
           // Both models exhausted — return friendly chat message as 500 error
-          // Both models exhausted — return friendly chat message as normal AI response
+          // Both models exhausted — return friendly chat message as normal AI response using Data Stream Protocol
+          const errorText = 'Synthia tengah berehat sekejap sebab terlalu banyak permintaan hari ini. Quota harian API (1,500 request/hari) mungkin dah habis. Cuba lagi esok ya, atau minta admin upgrade ke pelan berbayar di Google AI Studio! 😊';
           return new Response(
-            'Synthia tengah berehat sekejap sebab terlalu banyak permintaan hari ini. Quota harian API (1,500 request/hari) mungkin dah habis. Cuba lagi esok ya, atau minta admin upgrade ke pelan berbayar di Google AI Studio! 😊',
+            `0:${JSON.stringify(errorText)}\n`,
             { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }
           );
         }
@@ -148,8 +150,9 @@ If asked about absentees or latecomers, read the CURRENT DATABASE CONTEXT to ans
   } catch (error: any) {
     console.error("AI Error:", error);
     
+    const mainErrorText = 'Maaf, Synthia mengalami masalah teknikal. Sila cuba lagi sebentar. 🔧\n\nRalat: ' + (error.message || 'Unknown Error');
     return new Response(
-      'Maaf, Synthia mengalami masalah teknikal. Sila cuba lagi sebentar. 🔧\n\nRalat: ' + (error.message || 'Unknown Error'),
+      `0:${JSON.stringify(mainErrorText)}\n`,
       { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }
     );
   }
