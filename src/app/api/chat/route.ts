@@ -9,6 +9,10 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 export const maxDuration = 30;
 
+// Primary and fallback models
+const PRIMARY_MODEL = 'gemini-2.5-flash';
+const FALLBACK_MODEL = 'gemini-2.5-flash-lite';
+
 export async function POST(req: Request) {
   try {
     const { messages } = await req.json();
@@ -33,7 +37,6 @@ export async function POST(req: Request) {
     const logsMap = new Map();
     if (logs) {
       logs.forEach(log => {
-        // Keep the earliest log for the day
         if (!logsMap.has(log.student_id) || new Date(log.timestamp) < new Date(logsMap.get(log.student_id).timestamp)) {
           logsMap.set(log.student_id, log);
         }
@@ -46,9 +49,9 @@ export async function POST(req: Request) {
         if (log) {
           const scanTime = new Date(log.timestamp);
           const thresholdLate = new Date(scanTime);
-          thresholdLate.setHours(8, 0, 0, 0); // 8:00 AM cutoff for Late
+          thresholdLate.setHours(8, 0, 0, 0);
           const thresholdAbsent = new Date(scanTime);
-          thresholdAbsent.setHours(11, 0, 0, 0); // 11:00 AM cutoff for Absent
+          thresholdAbsent.setHours(11, 0, 0, 0);
 
           if (scanTime > thresholdAbsent) {
             absentCount++;
@@ -83,14 +86,7 @@ ATTENDANCE RULES:
 - "Tak Hadir" (Absent): Student scanned AFTER 11:00 AM, or has no scan record for the day.
 `;
 
-    const sanitizedMessages = messages.map((m: any) => ({
-      role: m.role,
-      content: m.content || (m.parts ? m.parts.map((p: any) => p.text).join("") : "")
-    }));
-
-    const result = await streamText({
-      model: google('gemini-3.5-flash'),
-      system: `You are 'Greetly Copilot' (also known as Synthia), a smart AI assistant for the Greetly IoT Facial Recognition Attendance System.
+    const systemPrompt = `You are 'Greetly Copilot' (also known as Synthia), a smart AI assistant for the Greetly IoT Facial Recognition Attendance System.
 Your task is to help teachers and school administrators manage attendance, view statistics, and answer their questions professionally, concisely, and politely.
 You MUST reply in the same language that the user speaks to you (e.g., if the user speaks Bahasa Melayu, reply in Bahasa Melayu. If English, reply in English).
 This system uses a Raspberry Pi for Edge AI and Supabase for the database.
@@ -98,22 +94,74 @@ This system uses a Raspberry Pi for Edge AI and Supabase for the database.
 ${dbContext}
 
 CRITICAL INSTRUCTION: DO NOT use any Markdown formatting (no asterisks **, no hashes ###, no bold, no lists). ONLY use plain text and friendly emojis. Write in a conversational, friendly, and plain text manner.
-If asked about absentees or latecomers, read the CURRENT DATABASE CONTEXT to answer accurately. Never make up names.`,
-      messages: sanitizedMessages,
-    });
+If asked about absentees or latecomers, read the CURRENT DATABASE CONTEXT to answer accurately. Never make up names.`;
 
-    return result.toUIMessageStreamResponse();
+    const sanitizedMessages = messages.map((m: any) => ({
+      role: m.role,
+      content: m.content || (m.parts ? m.parts.map((p: any) => p.text).join("") : "")
+    }));
+
+    // Try primary model first, then fallback
+    try {
+      const result = await streamText({
+        model: google(PRIMARY_MODEL),
+        system: systemPrompt,
+        messages: sanitizedMessages,
+        maxRetries: 0, // CRITICAL: Disable auto-retry to conserve quota
+      });
+      return result.toUIMessageStreamResponse();
+    } catch (primaryError: any) {
+      console.error("Primary model error:", primaryError.message);
+      
+      // Check if it's a rate limit error
+      const isRateLimit = primaryError.message?.includes('429') || 
+                          primaryError.message?.includes('quota') ||
+                          primaryError.message?.includes('RESOURCE_EXHAUSTED') ||
+                          primaryError.message?.includes('rate');
+
+      if (isRateLimit) {
+        // Try fallback model (different model may have separate quota)
+        try {
+          console.log("Trying fallback model:", FALLBACK_MODEL);
+          const fallbackResult = await streamText({
+            model: google(FALLBACK_MODEL),
+            system: systemPrompt,
+            messages: sanitizedMessages,
+            maxRetries: 0,
+          });
+          return fallbackResult.toUIMessageStreamResponse();
+        } catch (fallbackError: any) {
+          console.error("Fallback model also failed:", fallbackError.message);
+          
+          // Both models exhausted — return friendly chat message
+          return new Response(
+            JSON.stringify({
+              role: 'assistant',
+              content: 'Synthia tengah berehat sekejap sebab terlalu banyak permintaan hari ini. Quota harian API (1,500 request/hari) mungkin dah habis. Cuba lagi esok ya, atau minta admin upgrade ke pelan berbayar di Google AI Studio! 😊'
+            }),
+            { 
+              status: 200, 
+              headers: { 'Content-Type': 'application/json' } 
+            }
+          );
+        }
+      }
+
+      // Non-rate-limit error — throw it
+      throw primaryError;
+    }
   } catch (error: any) {
     console.error("AI Error:", error);
     
-    // Write error to file for debugging
-    const fs = require('fs');
-    fs.writeFileSync('error_log.txt', JSON.stringify({
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    }, null, 2));
-
-    return new Response("Ralat memproses AI: " + (error.message || String(error)), { status: 500 });
+    return new Response(
+      JSON.stringify({
+        role: 'assistant',
+        content: 'Maaf, Synthia mengalami masalah teknikal. Sila cuba lagi sebentar. 🔧'
+      }),
+      { 
+        status: 200, 
+        headers: { 'Content-Type': 'application/json' } 
+      }
+    );
   }
 }
