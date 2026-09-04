@@ -5,6 +5,12 @@
 
 Developed by syahmiaof. **Greetly** is a cloud-integrated, real-time facial recognition student attendance monitoring system. It leverages a modern tech stack (Next.js 15, Tailwind CSS v4, Supabase Auth/Realtime, Python Edge Node) to provide seamless attendance tracking, live dashboard monitoring, hardware telemetry, and an automated CI/CD pipeline for rapid deployments.
 
+> [!IMPORTANT]
+> **Synthia AI Copilot Setup**: To enable the AI chatbot (Synthia), you MUST add a Google Gemini API Key.
+> 1. Get a free API key from [Google AI Studio](https://aistudio.google.com/).
+> 2. For local development, add `GOOGLE_GENERATIVE_AI_API_KEY=your_key_here` to your `.env.local` file.
+> 3. For production, go to your **Vercel Dashboard** → Settings → Environment Variables and add `GOOGLE_GENERATIVE_AI_API_KEY`.
+
 ---
 
 ## 1. System Architecture & CI/CD Pipeline
