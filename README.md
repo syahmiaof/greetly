@@ -6,10 +6,10 @@
 Developed by syahmiaof. **Greetly** is a cloud-integrated, real-time facial recognition student attendance monitoring system. It leverages a modern tech stack (Next.js 15, Tailwind CSS v4, Supabase Auth/Realtime, Python Edge Node) to provide seamless attendance tracking, live dashboard monitoring, hardware telemetry, and an automated CI/CD pipeline for rapid deployments.
 
 > [!IMPORTANT]
-> **Synthia AI Copilot Setup**: To enable the AI chatbot (Synthia), you MUST add a Google Gemini API Key.
-> 1. Get a free API key from [Google AI Studio](https://aistudio.google.com/).
-> 2. For local development, add `GOOGLE_GENERATIVE_AI_API_KEY=your_key_here` to your `.env.local` file.
-> 3. For production, go to your **Vercel Dashboard** → Settings → Environment Variables and add `GOOGLE_GENERATIVE_AI_API_KEY`.
+> **Synthia AI Copilot Setup**: To enable the AI chatbot (Synthia), you MUST add an OpenRouter API Key. Greetly uses OpenRouter to access free AI models like Llama 3 and Gemma 2.
+> 1. Get a free API key from [OpenRouter](https://openrouter.ai/).
+> 2. For local development, add `OPENROUTER_API_KEY=your_key_here` to your `.env.local` file.
+> 3. For production, go to your **Vercel Dashboard** → Settings → Environment Variables and add `OPENROUTER_API_KEY`.
 
 ---
 
@@ -341,28 +341,25 @@ To create the 3D 'exploded-view' animation of the Greetly hardware for the landi
 4. Extract **150 to 250 frames** to ensure a high frame-rate scroll experience.
 5. Replace the files in public/greetly.web/ezgif-6d4320075cf41310-jpg with the new frames and update the \frameCount in index.html accordingly.
 
----
+## 12. 🤖 AI Copilot (Synthia) & OpenRouter API Limits
 
-## 12. 🤖 AI Copilot (Synthia) & Gemini API Limits
+The **Greetly Copilot (Synthia)** is integrated using the Vercel AI SDK and the OpenRouter API. We use OpenRouter to aggregate 100% free models like Meta's `llama-3-8b-instruct:free` and Google's `gemma-2-9b-it:free`. It acts as an intelligent assistant capable of querying the Supabase database and understanding hardware metrics in real-time.
 
-The **Greetly Copilot (Synthia)** is integrated using the Vercel AI SDK and Google Gemini API (`gemini-3.5-flash`). It acts as an intelligent assistant capable of querying the Supabase database and understanding hardware metrics in real-time.
+### OpenRouter Free Tier Benefits & Restrictions
 
-### Gemini API Free Tier Restrictions
+By utilizing OpenRouter's free tier, you don't need to pay for API usage. However, there are some fair-use rate limits depending on the specific model:
 
-If you are using the Google Gemini API **Free Tier**, please be aware of the following strict rate limits:
+| Limit Type | Free Tier |
+|---|---|
+| Requests Per Minute (RPM) | Depends on underlying provider |
+| Requests Per Day (RPD) | Up to 200 requests/day per free model |
 
-| Limit Type | Free Tier | Pay-as-you-go |
-|---|---|---|
-| Requests Per Minute (RPM) | 15 | 1,000 |
-| Tokens Per Minute (TPM) | 1,000,000 | 4,000,000 |
-| Requests Per Day (RPD) | 1,500 | Unlimited |
+If you hit a rate limit with the primary model (Llama 3), our system is designed to automatically **failover** to a secondary free model (Gemma 2) to ensure maximum uptime.
 
-If you exceed 15 questions within a single minute, the API will return a **429 Too Many Requests** error. The Vercel AI SDK handles this by aborting the stream.
-
-Our frontend gracefully catches this error and displays a custom fallback message:
-> *"Alamak! Synthia sedang berehat sekejap sebab terlalu banyak soalan. Cuba lagi dalam 30 saat ya! 😅"*
+Our frontend gracefully catches any total API exhaustion and displays a custom fallback message:
+> *"Synthia tengah berehat sekejap sebab terlalu banyak permintaan hari ini. Kuota API percuma OpenRouter mungkin dah habis. Sila cuba lagi sebentar!"*
 
 ### How to Resolve Rate Limits
 
-1. **Wait**: The limit operates on a rolling window. You only need to wait about **30 to 60 seconds** before you can ask questions again.
-2. **Upgrade**: If Greetly is deployed to a school with heavy traffic, upgrade to the **Pay-as-you-go Tier** in [Google AI Studio](https://aistudio.google.com/), which raises the limit to **1,000 RPM**.
+1. **Wait**: The limit operates on a rolling window. You only need to wait before you can ask questions again.
+2. **Upgrade**: If Greetly is deployed to a school with heavy traffic, you can simply add credits to your [OpenRouter](https://openrouter.ai/) account and switch `route.ts` to use premium models like GPT-4o or Claude 3.5 Sonnet.
