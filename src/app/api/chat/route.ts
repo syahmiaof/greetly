@@ -9,9 +9,9 @@ const openrouter = createOpenAI({
 });
 
 export const maxDuration = 30;
-// We'll use Llama 3 8B as the primary free model, and Gemma 2 as a fallback
-const PRIMARY_MODEL = 'meta-llama/llama-3-8b-instruct:free';
-const FALLBACK_MODEL = 'google/gemma-2-9b-it:free';
+// We'll use OpenRouter's auto-routing free tier as primary
+const PRIMARY_MODEL = 'openrouter/free';
+const FALLBACK_MODEL = 'google/gemma-4-31b-it:free';
 
 export async function POST(req: Request) {
   try {
