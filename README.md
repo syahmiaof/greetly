@@ -363,3 +363,24 @@ Our frontend gracefully catches any total API exhaustion and displays a custom f
 
 1. **Wait**: The limit operates on a rolling window. You only need to wait before you can ask questions again.
 2. **Upgrade**: If Greetly is deployed to a school with heavy traffic, you can simply add credits to your [OpenRouter](https://openrouter.ai/) account and switch `route.ts` to use premium models like GPT-4o or Claude 3.5 Sonnet.
+
+---
+
+## 13. Infrastructure & Production Deployment
+
+Greetly is deployed on a robust, highly available infrastructure stack combining local domain registrars, global CDNs, and serverless edge networks.
+
+### 1. Domain Registration (GB Network Solutions)
+The custom domain (`greetly.syahmiaof.my`) is registered through **GB Network Solutions**, a reliable local domain registrar in Malaysia. This provides a localized and professional namespace for the institution.
+
+### 2. DNS & Security (Cloudflare)
+Instead of using the default registrar nameservers, the domain's nameservers are pointed to **Cloudflare**. Cloudflare acts as our primary DNS manager and reverse proxy, providing:
+- **Free SSL/TLS Encryption** (Strict Mode) to secure all traffic.
+- **DDoS Protection** and Web Application Firewall (WAF) to block malicious requests.
+- **Edge Caching** to serve static assets instantly to users.
+
+### 3. Frontend & API Deployment (Vercel)
+The Next.js 15 application is deployed on **Vercel**, the native platform for Next.js.
+- **CI/CD Pipeline**: Vercel is directly connected to the GitHub repository. Any push to the `main` branch triggers an automatic build and deployment, ensuring zero-downtime updates.
+- **Edge Network**: Vercel serves the application globally.
+- **DNS Linking**: In Cloudflare, a `CNAME` record is created pointing the root domain to `cname.vercel-dns.com.`, bridging the Cloudflare CDN with Vercel's hosting.
