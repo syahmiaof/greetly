@@ -1,10 +1,17 @@
 import { streamText } from 'ai';
-import { google } from '@ai-sdk/google';
+import { createOpenAI } from '@ai-sdk/openai';
 import { createClient } from '@supabase/supabase-js';
 
+// Setup OpenRouter using OpenAI provider compatibility
+const openrouter = createOpenAI({
+  baseURL: 'https://openrouter.ai/api/v1',
+  apiKey: process.env.OPENROUTER_API_KEY || '',
+});
+
 export const maxDuration = 30;
-const PRIMARY_MODEL = 'gemini-3.6-flash';
-const FALLBACK_MODEL = 'gemini-3.5-flash-lite';
+// We'll use Llama 3 8B as the primary free model, and Gemma 2 as a fallback
+const PRIMARY_MODEL = 'meta-llama/llama-3-8b-instruct:free';
+const FALLBACK_MODEL = 'google/gemma-2-9b-it:free';
 
 export async function POST(req: Request) {
   try {
@@ -104,11 +111,15 @@ If asked about absentees or latecomers, read the CURRENT DATABASE CONTEXT to ans
 
     // Try primary model first, then fallback
     try {
+      if (!process.env.OPENROUTER_API_KEY) {
+        throw new Error("Sila letak OPENROUTER_API_KEY dalam fail .env atau Vercel Environment Variables. Boleh dapat percuma di https://openrouter.ai");
+      }
+
       const result = await streamText({
-        model: google(PRIMARY_MODEL),
+        model: openrouter(PRIMARY_MODEL),
         system: systemPrompt,
         messages: sanitizedMessages,
-        maxRetries: 0, // CRITICAL: Disable auto-retry to conserve quota
+        maxRetries: 0, 
       });
       return result.toUIMessageStreamResponse();
     } catch (primaryError: any) {
@@ -121,11 +132,11 @@ If asked about absentees or latecomers, read the CURRENT DATABASE CONTEXT to ans
                           primaryError.message?.includes('rate');
 
       if (isRateLimit) {
-        // Try fallback model (different model may have separate quota)
+        // Try fallback model
         try {
           console.log("Trying fallback model:", FALLBACK_MODEL);
           const fallbackResult = await streamText({
-            model: google(FALLBACK_MODEL),
+            model: openrouter(FALLBACK_MODEL),
             system: systemPrompt,
             messages: sanitizedMessages,
             maxRetries: 0,
@@ -134,9 +145,7 @@ If asked about absentees or latecomers, read the CURRENT DATABASE CONTEXT to ans
         } catch (fallbackError: any) {
           console.error("Fallback model also failed:", fallbackError.message);
           
-          // Both models exhausted — return friendly chat message as 500 error
-          // Both models exhausted — return friendly chat message as normal AI response using Data Stream Protocol
-          const errorText = 'Synthia tengah berehat sekejap sebab terlalu banyak permintaan hari ini. Quota harian API (1,500 request/hari) mungkin dah habis. Cuba lagi esok ya, atau minta admin upgrade ke pelan berbayar di Google AI Studio! 😊';
+          const errorText = 'Synthia tengah berehat sekejap sebab terlalu banyak permintaan hari ini. Kuota API percuma OpenRouter mungkin dah habis. Sila cuba lagi sebentar!';
           return new Response(
             `0:${JSON.stringify(errorText)}\n`,
             { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }
@@ -144,13 +153,13 @@ If asked about absentees or latecomers, read the CURRENT DATABASE CONTEXT to ans
         }
       }
 
-      // Non-rate-limit error — throw it
+      // Non-rate-limit error throw it
       throw primaryError;
     }
   } catch (error: any) {
     console.error("AI Error:", error);
     
-    const mainErrorText = 'Maaf, Synthia mengalami masalah teknikal. Sila cuba lagi sebentar. 🔧\n\nRalat: ' + (error.message || 'Unknown Error');
+    const mainErrorText = 'Maaf, Synthia mengalami masalah teknikal. ' + (error.message || 'Unknown Error');
     return new Response(
       `0:${JSON.stringify(mainErrorText)}\n`,
       { status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }
