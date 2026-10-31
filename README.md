@@ -20,7 +20,7 @@
     <img src="https://img.shields.io/badge/Tailwind_CSS_v4-101713?style=for-the-badge&logo=tailwindcss&logoColor=60E1B5" alt="Tailwind CSS v4" />
     <img src="https://img.shields.io/badge/Supabase_Realtime-101713?style=for-the-badge&logo=supabase&logoColor=60E1B5" alt="Supabase Realtime" />
     <img src="https://img.shields.io/badge/Raspberry_Pi_3-101713?style=for-the-badge&logo=raspberrypi&logoColor=60E1B5" alt="Raspberry Pi 3" />
-    <img src="https://img.shields.io/badge/Python_Edge-101713?style=for-the-badge&logo=python&logoColor=60E1B5" alt="Python Edge" />
+    <img src="https://img.shields.io/badge/Python_Edge-101713?style=for-the-badge&logo=python&logoColor=60E1B5" alt="Python-Edge" />
     <img src="https://img.shields.io/badge/OpenCV-101713?style=for-the-badge&logo=opencv&logoColor=60E1B5" alt="OpenCV" />
   </p>
 </div>
