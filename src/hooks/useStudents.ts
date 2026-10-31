@@ -15,21 +15,6 @@ export function useStudents() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchStudents();
-
-    const channel = supabase
-      .channel('students_changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, (payload) => {
-        fetchStudents(); // Refresh the list whenever any change happens
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
   const fetchStudents = async () => {
     try {
       setLoading(true);
@@ -47,6 +32,21 @@ export function useStudents() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchStudents();
+
+    const channel = supabase
+      .channel('students_changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, (payload) => {
+        fetchStudents(); // Refresh the list whenever any change happens
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const addStudent = async (newStudent: Omit<Student, 'id' | 'created_at'>) => {
     try {

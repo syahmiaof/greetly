@@ -10,11 +10,6 @@ import { Bot } from 'lucide-react';
 export function Navbar() {
   const pathname = usePathname();
   
-  // Do not show Navbar on the login page
-  if (pathname === '/login') {
-    return null;
-  }
-
   const [useGreetly, setUseGreetly] = useState(true);
 
   useEffect(() => {
@@ -23,6 +18,11 @@ export function Navbar() {
       setUseGreetly(saved === 'true');
     }
   }, []);
+
+  // Do not show Navbar on the login page
+  if (pathname === '/login') {
+    return null;
+  }
 
   const toggleBrand = () => {
     const newVal = !useGreetly;
