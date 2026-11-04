@@ -1,0 +1,51 @@
+{
+  "project_name": "greetly",
+  "original_project_id": "czgcacpkdjmuomryceqs",
+  "original_organization_id": "jdkvkcowzkxtcjgrueqg",
+  "original_supabase_url": "https://czgcacpkdjmuomryceqs.supabase.co",
+  "region": "ap-southeast-1",
+  "created_at": "2026-08-28T11:58:27.646291Z",
+  "backup_created_at": "2026-11-04T13:40:00+08:00",
+  "tables": [
+    {
+      "name": "students",
+      "description": "Student master profiles, matric IDs, classes and facial tracking status",
+      "primary_key": "id (UUID)",
+      "foreign_keys": []
+    },
+    {
+      "name": "attendance_logs",
+      "description": "Realtime facial recognition check-in logs with confidence scores and timestamps",
+      "primary_key": "id (UUID)",
+      "foreign_keys": ["student_id -> students(id) ON DELETE CASCADE"]
+    },
+    {
+      "name": "hardware_config",
+      "description": "IoT bidirectional control state (cooldown, buzzer, kiosk restart/shutdown)",
+      "primary_key": "id (INT)",
+      "foreign_keys": []
+    },
+    {
+      "name": "hardware_telemetry",
+      "description": "Raspberry Pi health metrics (CPU temperature, CPU load, last ping heartbeat)",
+      "primary_key": "id (INT)",
+      "foreign_keys": []
+    }
+  ],
+  "views": [
+    {
+      "name": "attendance",
+      "description": "Joined view of attendance_logs and students with update rule for status"
+    }
+  ],
+  "realtime_publications": [
+    "students",
+    "attendance_logs",
+    "hardware_config",
+    "hardware_telemetry"
+  ],
+  "auth_requirements": {
+    "recommended_admin_email": "admin@tvetmara.edu.my",
+    "auth_provider": "Email + Password"
+  }
+}
